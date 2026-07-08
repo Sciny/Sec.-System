@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hacker Terminal</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: 'Courier New', monospace;
+        background-color: #000000;
+        color: #00ff88;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .terminal-header {
+        background-color: #111111;
+        border-bottom: 1px solid #00ff88;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .terminal-header h1 {
+        color: #00ff88;
+        font-size: 16px;
+        letter-spacing: 3px;
+      }
+
+      .header-right {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .header-right span {
+        color: #aaaaaa;
+        font-size: 12px;
+      }
+
+      .back-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 5px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+        font-family: monospace;
+      }
+
+      .back-btn:hover { background-color: #00ff8822; }
+
+      .terminal-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .output {
+        flex: 1;
+        margin-bottom: 15px;
+      }
+
+      .line {
+        margin-bottom: 4px;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .line.cmd { color: #00ff88; }
+      .line.info { color: #aaaaaa; }
+      .line.success { color: #00ff88; }
+      .line.error { color: #ff4444; }
+      .line.warning { color: #ffaa00; }
+      .line.data { color: #00aaff; }
+      .line.system { color: #ff88ff; }
+
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid #003322;
+        padding-top: 15px;
+      }
+
+      .prompt {
+        color: #00ff88;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+
+      .terminal-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #00ff88;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        caret-color: #00ff88;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 10px;
+        height: 16px;
+        background-color: #00ff88;
+        animation: blink 1s infinite;
+        vertical-align: middle;
+      }
+
+      @keyframes blink {
+        0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; }
+      }
+
+      .help-hint {
+        color: #444444;
+        font-size: 12px;
+        margin-top: 5px;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="terminal-header">
+      <h1>⬛ SECURE TERMINAL v2.0 — MARK@ADMIN</h1>
+      <div class="header-right">
+        <span id="termTime"></span>
+        <button class="back-btn" onclick="window.location.href='dashboard.html'">⬅ EXIT</button>
+      </div>
+    </div>
+
+    <div class="terminal-body">
+      <div class="output" id="output"></div>
+      <div class="input-row">
+        <span class="prompt">mark@secure:~$</span>
+        <input type="text" class="terminal-input" id="termInput" placeholder="type a command..." autofocus onkeydown="handleKey(event)" />
+      </div>
+      <div class="help-hint">💡 Type 'help' to see available commands</div>
+    </div>
+
+    <script>
+
+      var output = document.getElementById("output");
+      var input = document.getElementById("termInput");
+      var history = [];
+      var historyIndex = -1;
+
+      // Clock
+      setInterval(function() {
+        document.getElementById("termTime").innerText = new Date().toLocaleTimeString();
+      }, 1000);
+
+      // Boot sequence
+      var bootLines = [
+        { text: "SECURE TERMINAL v2.0 — INITIALIZING...", type: "system", delay: 0 },
+        { text: "Loading kernel modules...", type: "info", delay: 300 },
+        { text: "Mounting encrypted filesystem... [OK]", type: "success", delay: 600 },
+        { text: "Starting firewall... [OK]", type: "success", delay: 900 },
+        { text: "Establishing secure connection... [OK]", type: "success", delay: 1200 },
+        { text: "Loading user profile: MARK [ADMIN]... [OK]", type: "success", delay: 1500 },
+        { text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", type: "info", delay: 1800 },
+        { text: "Welcome, Mark. You have ADMIN access.", type: "system", delay: 2000 },
+        { text: "Type 'help' for available commands.", type: "info", delay: 2200 },
+        { text: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", type: "info", delay: 2400 },
+      ];
+
+      bootLines.forEach(function(line) {
+        setTimeout(function() {
+          addLine(line.text, line.type);
+        }, line.delay);
+      });
+
+      function addLine(text, type, delay) {
+        delay = delay || 0;
+        setTimeout(function() {
+          var div = document.createElement("div");
+          div.className = "line " + (type || "info");
+          div.innerText = text;
+          output.appendChild(div);
+          output.scrollTop = output.scrollHeight;
+        }, delay);
+      }
+
+      function handleKey(e) {
+        if (e.key === "Enter") {
+          var cmd = input.value.trim();
+          if (cmd) {
+            history.unshift(cmd);
+            historyIndex = -1;
+            addLine("mark@secure:~$ " + cmd, "cmd");
+            processCommand(cmd.toLowerCase());
+            input.value = "";
+          }
+        } else if (e.key === "ArrowUp") {
+          if (historyIndex < history.length - 1) {
+            historyIndex++;
+            input.value = history[historyIndex];
+          }
+        } else if (e.key === "ArrowDown") {
+          if (historyIndex > 0) {
+            historyIndex--;
+            input.value = history[historyIndex];
+          } else {
+            historyIndex = -1;
+            input.value = "";
+          }
+        }
+      }
+
+      function processCommand(cmd) {
+        var parts = cmd.split(" ");
+        var base = parts[0];
+
+        switch(base) {
+
+          case "help":
+            addLine("━━━━ AVAILABLE COMMANDS ━━━━", "system");
+            addLine("help          — Show this menu", "info");
+            addLine("status        — System status", "info");
+            addLine("scan          — Run security scan", "info");
+            addLine("users         — List all users", "info");
+            addLine("ping [target] — Ping a target", "info");
+            addLine("hack [target] — Hack a target", "info");
+            addLine("decrypt [file]— Decrypt a file", "info");
+            addLine("encrypt [file]— Encrypt a file", "info");
+            addLine("locate [user] — Locate a user", "info");
+            addLine("firewall      — Firewall status", "info");
+            addLine("network       — Network info", "info");
+            addLine("logs          — View system logs", "info");
+            addLine("clear         — Clear terminal", "info");
+            addLine("lockdown      — Initiate lockdown", "info");
+            addLine("exit          — Exit terminal", "info");
+            addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "status":
+            addLine("━━━━ SYSTEM STATUS ━━━━", "system");
+            addLine("CPU Usage:      23%", "data");
+            addLine("RAM Usage:      1.2GB / 8GB", "data");
+            addLine("Disk:           245GB / 500GB", "data");
+            addLine("Network:        ONLINE", "success");
+            addLine("Firewall:       ACTIVE", "success");
+            addLine("Threats:        0 DETECTED", "success");
+            addLine("Uptime:         7d 14h 22m", "data");
+            addLine("━━━━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "scan":
+            addLine("Initiating security scan...", "warning");
+            addLine("Scanning ports...", "info", 300);
+            addLine("Checking for intrusions...", "info", 600);
+            addLine("Analyzing network traffic...", "info", 900);
+            addLine("Scanning for malware...", "info", 1200);
+            addLine("Verifying system integrity...", "info", 1500);
+            addLine("━━━━ SCAN RESULTS ━━━━", "system", 1800);
+            addLine("✓ No open ports detected", "success", 2000);
+            addLine("✓ No intrusions found", "success", 2200);
+            addLine("✓ Network traffic normal", "success", 2400);
+            addLine("✓ No malware detected", "success", 2600);
+            addLine("✓ System integrity: OK", "success", 2800);
+            addLine("SCAN COMPLETE — System Secure!", "success", 3000);
+            break;
+
+          case "users":
+            addLine("━━━━ USER DATABASE ━━━━", "system");
+            addLine("ID    NAME      ROLE      STATUS", "data");
+            addLine("001   mark      ADMIN     ONLINE", "success");
+            addLine("002   guest     USER      OFFLINE", "info");
+            addLine("003   system    ROOT      ACTIVE", "warning");
+            addLine("Total: 3 users", "info");
+            addLine("━━━━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "ping":
+            var target = parts[1] || "192.168.1.1";
+            addLine("Pinging " + target + "...", "info");
+            addLine("Reply from " + target + ": bytes=32 time=1ms TTL=128", "success", 300);
+            addLine("Reply from " + target + ": bytes=32 time=2ms TTL=128", "success", 600);
+            addLine("Reply from " + target + ": bytes=32 time=1ms TTL=128", "success", 900);
+            addLine("Reply from " + target + ": bytes=32 time=3ms TTL=128", "success", 1200);
+            addLine("Ping complete — 4 packets sent, 0 lost", "info", 1500);
+            break;
+
+          case "hack":
+            var htarget = parts[1] || "target";
+            addLine("⚠ Initiating hack sequence on: " + htarget, "warning");
+            addLine("Finding vulnerabilities...", "info", 300);
+            addLine("Vulnerability found: Port 8080 OPEN", "error", 600);
+            addLine("Injecting payload...", "warning", 900);
+            addLine("Bypassing firewall...", "warning", 1200);
+            addLine("Establishing backdoor...", "warning", 1500);
+            addLine("Extracting data...", "warning", 1800);
+            addLine("████████████████████ 100%", "data", 2100);
+            addLine("✓ HACK SUCCESSFUL — Access granted!", "success", 2400);
+            addLine("Data extracted to /secure/output/", "info", 2700);
+            break;
+
+          case "decrypt":
+            var dfile = parts[1] || "file.enc";
+            addLine("Decrypting: " + dfile, "warning");
+            addLine("Loading AES-256 key...", "info", 300);
+            addLine("Decrypting chunks...", "info", 600);
+            addLine("████████████████████ 100%", "data", 1200);
+            addLine("✓ Decryption complete!", "success", 1500);
+            addLine("Output saved to: /decrypted/" + dfile, "info", 1700);
+            break;
+
+          case "encrypt":
+            var efile = parts[1] || "file.txt";
+            addLine("Encrypting: " + efile, "warning");
+            addLine("Generating AES-256 key...", "info", 300);
+            addLine("Encrypting data...", "info", 600);
+            addLine("████████████████████ 100%", "data", 1200);
+            addLine("✓ Encryption complete!", "success", 1500);
+            addLine("Output: " + efile + ".enc", "info", 1700);
+            break;
+
+          case "locate":
+            var luser = parts[1] || "user";
+            addLine("Locating: " + luser, "warning");
+            addLine("Triangulating signal...", "info", 300);
+            addLine("Pinging cell towers...", "info", 600);
+            addLine("Accessing GPS data...", "info", 900);
+            addLine("━━━━ LOCATION FOUND ━━━━", "system", 1200);
+            addLine("User: " + luser, "data", 1400);
+            addLine("Location: Nairobi, Kenya", "data", 1400);
+            addLine("Coords: -1.286389, 36.817223", "data", 1400);
+            addLine("IP: 197.248.xxx.xxx", "data", 1400);
+            addLine("Device: Android/Chrome", "data", 1400);
+            addLine("━━━━━━━━━━━━━━━━━━━━━", "system", 1600);
+            break;
+
+          case "firewall":
+            addLine("━━━━ FIREWALL STATUS ━━━━", "system");
+            addLine("Status:         ACTIVE", "success");
+            addLine("Rules loaded:   247", "data");
+            addLine("Blocked today:  1,432 attempts", "warning");
+            addLine("Last attack:    2 hours ago", "warning");
+            addLine("Mode:           MAXIMUM SECURITY", "success");
+            addLine("━━━━━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "network":
+            addLine("━━━━ NETWORK INFO ━━━━", "system");
+            addLine("Interface:      eth0", "data");
+            addLine("IP Address:     192.168.1.100", "data");
+            addLine("MAC:            00:1A:2B:3C:4D:5E", "data");
+            addLine("Gateway:        192.168.1.1", "data");
+            addLine("DNS:            8.8.8.8", "data");
+            addLine("Speed:          1Gbps", "data");
+            addLine("Status:         CONNECTED", "success");
+            addLine("━━━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "logs":
+            addLine("━━━━ SYSTEM LOGS ━━━━", "system");
+            addLine("[INFO] System boot successful", "info");
+            addLine("[INFO] User mark logged in", "info");
+            addLine("[WARN] 3 failed login attempts", "warning");
+            addLine("[INFO] Security scan completed", "info");
+            addLine("[WARN] Firewall blocked 1,432 IPs", "warning");
+            addLine("[INFO] Backup completed", "info");
+            addLine("[ERROR] Unauthorized access attempt", "error");
+            addLine("[INFO] Threat neutralized", "success");
+            addLine("━━━━━━━━━━━━━━━━━━━", "system");
+            break;
+
+          case "clear":
+            output.innerHTML = "";
+            break;
+
+          case "lockdown":
+            addLine("⚠ INITIATING LOCKDOWN SEQUENCE...", "error");
+            addLine("Locking all systems...", "warning", 500);
+            addLine("Wiping access logs...", "warning", 1000);
+            setTimeout(function() {
+              window.location.href = "lockdown.html";
+            }, 1500);
+            break;
+
+          case "exit":
+            addLine("Closing secure session...", "warning");
+            addLine("Goodbye, Mark.", "system", 500);
+            setTimeout(function() {
+              window.location.href = "dashboard.html";
+            }, 1000);
+            break;
+
+          default:
+            addLine("Command not found: " + cmd + " — type 'help' for commands", "error");
+        }
+      }
+
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Weather & Threat Map</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        color: white;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      nav {
+        background-color: #1a1a4e;
+        border-bottom: 1px solid #00ff88;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav .logo { color: #00ff88; font-size: 16px; font-weight: bold; }
+
+      .nav-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .nav-btn:hover { background-color: #00ff8822; }
+
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Map */
+      .map-area {
+        flex: 1;
+        position: relative;
+        background-color: #050518;
+        overflow: hidden;
+      }
+
+      .map-grid {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image:
+          linear-gradient(rgba(0,255,136,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,255,136,0.05) 1px, transparent 1px);
+        background-size: 50px 50px;
+      }
+
+      /* Continents (simplified shapes) */
+      .continent {
+        position: absolute;
+        border-radius: 40%;
+        opacity: 0.15;
+      }
+
+      /* Threat zones */
+      .threat-zone {
+        position: absolute;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.3s;
+      }
+
+      .threat-zone:hover { transform: scale(1.1); }
+
+      .threat-zone .zone-label {
+        position: absolute;
+        top: -20px;
+        color: white;
+        font-size: 10px;
+        font-family: monospace;
+        white-space: nowrap;
+        text-align: center;
+        width: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .threat-high {
+        background-color: rgba(255,68,68,0.3);
+        border: 2px solid #ff4444;
+        box-shadow: 0 0 20px rgba(255,68,68,0.4);
+        animation: threatpulse 1s infinite;
+      }
+
+      .threat-med {
+        background-color: rgba(255,170,0,0.3);
+        border: 2px solid #ffaa00;
+        box-shadow: 0 0 15px rgba(255,170,0,0.3);
+      }
+
+      .threat-low {
+        background-color: rgba(0,255,136,0.2);
+        border: 2px solid #00ff88;
+        box-shadow: 0 0 10px rgba(0,255,136,0.2);
+      }
+
+      @keyframes threatpulse {
+        0% { box-shadow: 0 0 10px rgba(255,68,68,0.4); }
+        50% { box-shadow: 0 0 30px rgba(255,68,68,0.8); }
+        100% { box-shadow: 0 0 10px rgba(255,68,68,0.4); }
+      }
+
+      /* Weather systems */
+      .weather-system {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+
+      .storm {
+        border: 2px dashed rgba(100,150,255,0.5);
+        background-color: rgba(50,100,200,0.1);
+        animation: stormspin 10s linear infinite;
+      }
+
+      @keyframes stormspin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* HUD */
+      .hud-tl {
+        position: absolute;
+        top: 10px; left: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        z-index: 20;
+      }
+
+      .hud-tr {
+        position: absolute;
+        top: 10px; right: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        text-align: right;
+        z-index: 20;
+      }
+
+      /* Tooltip */
+      .tooltip {
+        display: none;
+        position: absolute;
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 12px;
+        font-family: monospace;
+        z-index: 100;
+        min-width: 180px;
+      }
+
+      .tooltip h4 { color: #00ff88; margin-bottom: 5px; }
+      .tooltip p { color: #cccccc; margin: 2px 0; }
+
+      /* Side panel */
+      .side-panel {
+        width: 270px;
+        background-color: #0d0d2e;
+        border-left: 1px solid #00ff88;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow-y: auto;
+      }
+
+      .panel-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .panel-box h3 {
+        color: #00ff88;
+        font-size: 13px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 5px 0;
+        border-bottom: 1px solid #0a0a2e;
+        color: #cccccc;
+      }
+
+      .stat-val { color: #00ff88; font-family: monospace; }
+      .stat-warn { color: #ffaa00; }
+      .stat-danger { color: #ff4444; }
+
+      /* Threat level indicator */
+      .threat-indicator {
+        text-align: center;
+        padding: 15px;
+      }
+
+      .threat-circle {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 30px;
+        border: 3px solid #ff4444;
+        background-color: rgba(255,68,68,0.2);
+        box-shadow: 0 0 20px rgba(255,68,68,0.4);
+        animation: threatpulse 1s infinite;
+      }
+
+      .threat-level-text {
+        color: #ff4444;
+        font-size: 18px;
+        font-weight: bold;
+        letter-spacing: 2px;
+      }
+
+      .threat-desc {
+        color: #aaaaaa;
+        font-size: 11px;
+        margin-top: 5px;
+      }
+
+      /* Weather cards */
+      .weather-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .weather-card {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 6px;
+        padding: 8px;
+        text-align: center;
+      }
+
+      .weather-card .icon { font-size: 20px; margin-bottom: 3px; }
+      .weather-card .city { color: #aaaaaa; font-size: 10px; }
+      .weather-card .temp { color: #00ff88; font-size: 14px; font-weight: bold; }
+      .weather-card .cond { color: #cccccc; font-size: 10px; }
+
+      .log-area {
+        max-height: 100px;
+        overflow-y: auto;
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .log-line { color: #aaaaaa; padding: 2px 0; border-bottom: 1px solid #0a0a2e; }
+      .log-line.alert { color: #ff4444; }
+      .log-line.ok { color: #00ff88; }
+
+    </style>
+  </head>
+  <body>
+
+    <nav>
+      <div class="logo">🌍 WEATHER & THREAT LEVEL MAP — MARK@ADMIN</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="color:#aaa;font-size:12px;" id="navTime"></span>
+        <button class="nav-btn" onclick="window.location.href='dashboard.html'">⬅ Dashboard</button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <div class="map-area" id="mapArea">
+        <div class="map-grid"></div>
+
+        <!-- Continents -->
+        <div class="continent" style="background:#1a4b1a;width:200px;height:150px;top:15%;left:10%;border-radius:30% 40% 50% 30%;"></div>
+        <div class="continent" style="background:#1a4b1a;width:300px;height:200px;top:10%;left:35%;border-radius:40% 30% 40% 50%;"></div>
+        <div class="continent" style="background:#1a4b1a;width:180px;height:250px;top:10%;left:72%;border-radius:30% 50% 40% 30%;"></div>
+        <div class="continent" style="background:#1a4b1a;width:150px;height:180px;top:55%;left:15%;border-radius:40% 30% 50% 40%;"></div>
+        <div class="continent" style="background:#1a4b1a;width:200px;height:150px;top:55%;left:38%;border-radius:50% 40% 30% 40%;"></div>
+
+        <!-- Weather systems -->
+        <div class="weather-system storm" style="width:120px;height:120px;top:20%;left:25%;"></div>
+        <div class="weather-system storm" style="width:80px;height:80px;top:50%;left:60%;animation-duration:15s;"></div>
+
+        <!-- Threat zones -->
+        <div class="threat-zone threat-high" style="width:80px;height:80px;top:25%;left:55%;" onclick="showTooltip(event,'Zone Alpha','HIGH','Active conflict detected','Multiple units mobilized','Immediate response required')">
+          <span style="font-size:20px;">⚠️</span>
+          <div class="zone-label">ZONE ALPHA</div>
+        </div>
+
+        <div class="threat-zone threat-high" style="width:60px;height:60px;top:45%;left:75%;" onclick="showTooltip(event,'Zone Delta','HIGH','Missile activity detected','Air defense on alert','Strike team deployed')">
+          <span style="font-size:16px;">🚨</span>
+          <div class="zone-label">ZONE DELTA</div>
+        </div>
+
+        <div class="threat-zone threat-med" style="width:70px;height:70px;top:55%;left:30%;" onclick="showTooltip(event,'Zone Bravo','MEDIUM','Suspicious activity','Monitoring in progress','Standby units ready')">
+          <span style="font-size:18px;">⚡</span>
+          <div class="zone-label">ZONE BRAVO</div>
+        </div>
+
+        <div class="threat-zone threat-med" style="width:60px;height:60px;top:20%;left:80%;" onclick="showTooltip(event,'Zone Echo','MEDIUM','Border tensions elevated','Patrol units active','Situation monitored')">
+          <span style="font-size:16px;">⚡</span>
+          <div class="zone-label">ZONE ECHO</div>
+        </div>
+
+        <div class="threat-zone threat-low" style="width:60px;height:60px;top:60%;left:55%;" onclick="showTooltip(event,'Zone Charlie','LOW','Minor disturbance','Local units responding','Situation stable')">
+          <span style="font-size:16px;">✓</span>
+          <div class="zone-label">ZONE CHARLIE</div>
+        </div>
+
+        <div class="threat-zone threat-low" style="width:50px;height:50px;top:35%;left:15%;" onclick="showTooltip(event,'Zone Foxtrot','LOW','Routine patrol','No threats detected','All clear')">
+          <span style="font-size:14px;">✓</span>
+          <div class="zone-label">ZONE FOXTROT</div>
+        </div>
+
+        <!-- Tooltip -->
+        <div class="tooltip" id="tooltip"></div>
+
+        <!-- HUD -->
+        <div class="hud-tl">
+          <div>🌍 GLOBAL THREAT MAP</div>
+          <div id="hudTime"></div>
+          <div>ZONES: 6 ACTIVE</div>
+        </div>
+
+        <div class="hud-tr">
+          <div>THREAT LEVEL: HIGH</div>
+          <div>STORMS: 2 ACTIVE</div>
+          <div>CLICK ZONES FOR INFO</div>
+        </div>
+
+      </div>
+
+      <!-- Side Panel -->
+      <div class="side-panel">
+
+        <div class="panel-box">
+          <div class="threat-indicator">
+            <div class="threat-circle">⚠️</div>
+            <div class="threat-level-text">HIGH</div>
+            <div class="threat-desc">Global threat level elevated</div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>🌡️ WEATHER CONDITIONS</h3>
+          <div class="weather-cards">
+            <div class="weather-card">
+              <div class="icon">🌩️</div>
+              <div class="city">Nairobi</div>
+              <div class="temp" id="nbi">24°C</div>
+              <div class="cond">Thunderstorm</div>
+            </div>
+            <div class="weather-card">
+              <div class="icon">☀️</div>
+              <div class="city">London</div>
+              <div class="temp">18°C</div>
+              <div class="cond">Partly Cloudy</div>
+            </div>
+            <div class="weather-card">
+              <div class="icon">🌪️</div>
+              <div class="city">New York</div>
+              <div class="temp">22°C</div>
+              <div class="cond">Windy</div>
+            </div>
+            <div class="weather-card">
+              <div class="icon">🌤️</div>
+              <div class="city">Tokyo</div>
+              <div class="temp">28°C</div>
+              <div class="cond">Clear</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>🚨 THREAT SUMMARY</h3>
+          <div class="stat-row">
+            <span>🔴 High Threats</span>
+            <span class="stat-danger">2 ZONES</span>
+          </div>
+          <div class="stat-row">
+            <span>🟡 Med Threats</span>
+            <span class="stat-warn">2 ZONES</span>
+          </div>
+          <div class="stat-row">
+            <span>🟢 Low Threats</span>
+            <span class="stat-val">2 ZONES</span>
+          </div>
+          <div class="stat-row">
+            <span>Active Storms</span>
+            <span class="stat-warn">2</span>
+          </div>
+          <div class="stat-row">
+            <span>Units Deployed</span>
+            <span class="stat-val">847</span>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📋 THREAT LOG</h3>
+          <div class="log-area" id="logArea">
+            <div class="log-line alert">⚠ Zone Alpha: HIGH ALERT</div>
+            <div class="log-line alert">🚨 Zone Delta: MISSILE DETECTED</div>
+            <div class="log-line">⚡ Zone Bravo: Monitoring</div>
+            <div class="log-line ok">✓ Zone Charlie: Stable</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+
+      // Clock
+      setInterval(function() {
+        var t = new Date().toLocaleTimeString();
+        document.getElementById("navTime").innerText = t;
+        document.getElementById("hudTime").innerText = t;
+      }, 1000);
+
+      // Tooltip
+      function showTooltip(e, zone, level, line1, line2, line3) {
+        var tip = document.getElementById("tooltip");
+        var color = level === "HIGH" ? "#ff4444" : level === "MEDIUM" ? "#ffaa00" : "#00ff88";
+        tip.innerHTML =
+          '<h4 style="color:' + color + '">⚠ ' + zone + '</h4>' +
+          '<p>Threat Level: <span style="color:' + color + '">' + level + '</span></p>' +
+          '<p>' + line1 + '</p>' +
+          '<p>' + line2 + '</p>' +
+          '<p>' + line3 + '</p>';
+        tip.style.display = "block";
+        tip.style.left = (e.offsetX + 20) + "px";
+        tip.style.top = (e.offsetY + 20) + "px";
+        addLog("📍 Viewing: " + zone + " [" + level + "]");
+        setTimeout(function() { tip.style.display = "none"; }, 3000);
+      }
+
+      // Random alerts
+      var alerts = [
+        "⚠ New movement in Zone Alpha",
+        "📡 Satellite data updated",
+        "🌩️ Storm system intensifying",
+        "✓ Zone Charlie remains stable",
+        "🚨 Zone Delta: radar contact"
+      ];
+
+      setInterval(function() {
+        addLog(alerts[Math.floor(Math.random() * alerts.length)]);
+      }, 4000);
+
+      function addLog(msg) {
+        var log = document.getElementById("logArea");
+        var line = document.createElement("div");
+        line.className = "log-line";
+        line.innerText = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Two Factor Authentication</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 15px;
+        padding: 40px;
+        width: 400px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0,255,136,0.2);
+      }
+
+      .icon { font-size: 60px; margin-bottom: 20px; }
+
+      h1 { color: #00ff88; font-size: 24px; margin-bottom: 8px; }
+
+      p { color: #aaaaaa; font-size: 14px; margin-bottom: 25px; }
+
+      .code-display {
+        background-color: #0a0a2e;
+        border: 2px solid #00ff88;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      .code-display h2 {
+        color: #00ff88;
+        font-size: 40px;
+        letter-spacing: 10px;
+        font-family: monospace;
+      }
+
+      .code-timer {
+        color: #ffaa00;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+
+      .code-inputs {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .code-inputs input {
+        width: 50px;
+        height: 55px;
+        text-align: center;
+        font-size: 24px;
+        border-radius: 8px;
+        border: 1px solid #00ff88;
+        background-color: #0a0a2e;
+        color: white;
+        outline: none;
+        font-weight: bold;
+      }
+
+      .code-inputs input:focus {
+        border-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0,255,136,0.5);
+      }
+
+      button {
+        width: 100%;
+        padding: 13px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+
+      button:hover { background-color: #00cc6a; }
+
+      .resend-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .resend-btn:hover { background-color: #00ff8822; }
+
+      .error-msg { color: #ff4444; font-size: 13px; margin-top: 10px; display: none; }
+      .success-msg { color: #00ff88; font-size: 13px; margin-top: 10px; display: none; }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="box">
+      <div class="icon">📱</div>
+      <h1>Two-Factor Authentication</h1>
+      <p>A verification code has been generated. Enter it below to continue.</p>
+
+      <div class="code-display">
+        <h2 id="generatedCode">------</h2>
+        <div class="code-timer">⏱️ Code expires in: <span id="codeTimer">30</span>s</div>
+      </div>
+
+      <p>Enter the 6-digit code above:</p>
+
+      <div class="code-inputs">
+        <input type="text" maxlength="1" id="d1" oninput="moveNext(this,'d2')" />
+        <input type="text" maxlength="1" id="d2" oninput="moveNext(this,'d3')" />
+        <input type="text" maxlength="1" id="d3" oninput="moveNext(this,'d4')" />
+        <input type="text" maxlength="1" id="d4" oninput="moveNext(this,'d5')" />
+        <input type="text" maxlength="1" id="d5" oninput="moveNext(this,'d6')" />
+        <input type="text" maxlength="1" id="d6" oninput="moveNext(this,null)" />
+      </div>
+
+      <button onclick="verify2FA()">✅ VERIFY CODE</button>
+      <button class="resend-btn" onclick="generateCode()">🔄 Generate New Code</button>
+
+      <div class="error-msg" id="errorMsg">❌ Wrong code! Try again.</div>
+      <div class="success-msg" id="successMsg">✅ Verified! Redirecting...</div>
+    </div>
+
+    <script>
+
+      var currentCode = "";
+      var codeSeconds = 30;
+      var codeInterval;
+
+      function generateCode() {
+        currentCode = String(Math.floor(100000 + Math.random() * 900000));
+        document.getElementById("generatedCode").innerText = currentCode;
+        codeSeconds = 30;
+        clearInterval(codeInterval);
+        codeInterval = setInterval(function() {
+          codeSeconds--;
+          document.getElementById("codeTimer").innerText = codeSeconds;
+          if (codeSeconds <= 0) {
+            clearInterval(codeInterval);
+            document.getElementById("generatedCode").innerText = "EXPIRED";
+            currentCode = "";
+          }
+        }, 1000);
+        // Clear inputs
+        ["d1","d2","d3","d4","d5","d6"].forEach(function(id) {
+          document.getElementById(id).value = "";
+        });
+        document.getElementById("d1").focus();
+        document.getElementById("errorMsg").style.display = "none";
+      }
+
+      function moveNext(current, nextId) {
+        if (current.value.length === 1 && nextId) {
+          document.getElementById(nextId).focus();
+        }
+      }
+
+      function verify2FA() {
+        var entered = "";
+        ["d1","d2","d3","d4","d5","d6"].forEach(function(id) {
+          entered += document.getElementById(id).value;
+        });
+
+        if (entered === currentCode) {
+          document.getElementById("successMsg").style.display = "block";
+          document.getElementById("errorMsg").style.display = "none";
+          setTimeout(function() {
+            window.location.href = "fingerprint.html";
+          }, 1500);
+        } else {
+          document.getElementById("errorMsg").style.display = "block";
+          document.getElementById("successMsg").style.display = "none";
+          ["d1","d2","d3","d4","d5","d6"].forEach(function(id) {
+            document.getElementById(id).value = "";
+          });
+          document.getElementById("d1").focus();
+        }
+      }
+
+      // Generate code on load
+      generateCode();
+
+    </script>
+
+  </body>
+</html>

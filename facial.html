@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Facial Recognition</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+      }
+
+      .box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 15px;
+        padding: 40px;
+        width: 480px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0,255,136,0.2);
+      }
+
+      h1 { color: #00ff88; font-size: 24px; margin-bottom: 8px; }
+      p { color: #aaaaaa; font-size: 14px; margin-bottom: 25px; }
+
+      .camera-view {
+        width: 100%;
+        height: 280px;
+        background-color: #050510;
+        border: 2px solid #00ff88;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      .camera-view video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.9;
+      }
+
+      /* Face detection box */
+      .face-box {
+        position: absolute;
+        border: 2px solid #00ff88;
+        width: 140px;
+        height: 160px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        animation: facetrack 3s infinite alternate;
+      }
+
+      @keyframes facetrack {
+        0% { top: 48%; left: 48%; }
+        25% { top: 52%; left: 52%; }
+        50% { top: 48%; left: 52%; }
+        75% { top: 52%; left: 48%; }
+        100% { top: 50%; left: 50%; }
+      }
+
+      .face-box::before,
+      .face-box::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: #00ff88;
+        border-style: solid;
+      }
+
+      .face-box::before {
+        top: -2px; left: -2px;
+        border-width: 3px 0 0 3px;
+      }
+
+      .face-box::after {
+        bottom: -2px; right: -2px;
+        border-width: 0 3px 3px 0;
+      }
+
+      .face-label {
+        position: absolute;
+        top: -25px;
+        left: 0;
+        color: #00ff88;
+        font-size: 12px;
+        font-family: monospace;
+        white-space: nowrap;
+      }
+
+      /* Scan overlay */
+      .scan-overlay {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: none;
+      }
+
+      .scan-line {
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(to right, transparent, #00ff88, transparent);
+        animation: scandown 1.5s linear infinite;
+        display: none;
+      }
+
+      @keyframes scandown {
+        0% { top: 0%; }
+        100% { top: 100%; }
+      }
+
+      /* Grid overlay */
+      .grid-overlay {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-image:
+          linear-gradient(rgba(0,255,136,0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,255,136,0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+      }
+
+      /* Corner markers */
+      .corner {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: #00ff88;
+        border-style: solid;
+        opacity: 0.6;
+      }
+
+      .corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+      .corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+      .corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+      .corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+      /* HUD elements */
+      .hud-top {
+        position: absolute;
+        top: 10px; left: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        text-align: left;
+      }
+
+      .hud-bottom {
+        position: absolute;
+        bottom: 10px; right: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        text-align: right;
+      }
+
+      .rec-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #ff4444;
+        border-radius: 50%;
+        animation: blink 1s infinite;
+        margin-right: 5px;
+      }
+
+      @keyframes blink {
+        0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; }
+      }
+
+      /* Status */
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+
+      .status-item {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 8px 15px;
+        font-size: 12px;
+        color: #00ff88;
+        font-family: monospace;
+      }
+
+      /* Progress */
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background-color: #0a0a2e;
+        border-radius: 3px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        display: none;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background-color: #00ff88;
+        border-radius: 3px;
+        transition: width 0.1s;
+      }
+
+      .status-text {
+        color: #aaaaaa;
+        font-size: 13px;
+        margin-bottom: 15px;
+        min-height: 20px;
+        font-family: monospace;
+      }
+
+      /* Biometric data */
+      .biometric-data {
+        display: none;
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        text-align: left;
+      }
+
+      .bio-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+        border-bottom: 1px solid #1a1a4e;
+        font-size: 12px;
+        font-family: monospace;
+      }
+
+      .bio-label { color: #aaaaaa; }
+      .bio-value { color: #00ff88; }
+
+      button {
+        width: 100%;
+        padding: 13px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 8px;
+      }
+
+      button:hover { background-color: #00cc6a; }
+      button:disabled { background-color: #333; color: #666; cursor: not-allowed; }
+
+      .back-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      .back-btn:hover { background-color: #00ff8822; }
+
+      .success-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,255,136,0.15);
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+
+      .success-overlay h2 {
+        color: #00ff88;
+        font-size: 28px;
+        text-shadow: 0 0 20px #00ff88;
+      }
+
+      .failed-overlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(255,68,68,0.15);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .failed-overlay h2 {
+        color: #ff4444;
+        font-size: 28px;
+        text-shadow: 0 0 20px #ff4444;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="box">
+      <h1>👤 Facial Recognition</h1>
+      <p>Look directly at the camera to verify your identity</p>
+
+      <div class="camera-view" id="cameraView">
+        <video id="video" autoplay playsinline></video>
+
+        <div class="grid-overlay"></div>
+        <div class="scan-line" id="scanLine"></div>
+
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+
+        <div class="face-box" id="faceBox">
+          <div class="face-label" id="faceLabel">DETECTING...</div>
+        </div>
+
+        <div class="hud-top">
+          <div><span class="rec-dot"></span>LIVE</div>
+          <div id="hudTime"></div>
+          <div>RES: 1080p</div>
+        </div>
+
+        <div class="hud-bottom">
+          <div>CAM: FACIAL-01</div>
+          <div id="faceCount">FACES: 0</div>
+          <div id="confidence">CONF: 0%</div>
+        </div>
+
+        <div class="success-overlay" id="successOverlay">
+          <h2>✅ IDENTITY VERIFIED</h2>
+        </div>
+
+        <div class="failed-overlay" id="failedOverlay">
+          <h2>❌ FACE NOT RECOGNIZED</h2>
+        </div>
+
+      </div>
+
+      <div class="status-bar">
+        <div class="status-item" id="statusCam">📷 CAM: OFF</div>
+        <div class="status-item" id="statusAI">🤖 AI: STANDBY</div>
+        <div class="status-item" id="statusMatch">🔍 MATCH: --</div>
+      </div>
+
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="status-text" id="statusText">Click "Start Scan" to begin facial recognition</div>
+
+      <div class="biometric-data" id="bioData">
+        <div class="bio-row">
+          <span class="bio-label">Face ID</span>
+          <span class="bio-value" id="bioFaceId">--</span>
+        </div>
+        <div class="bio-row">
+          <span class="bio-label">Match Score</span>
+          <span class="bio-value" id="bioScore">--</span>
+        </div>
+        <div class="bio-row">
+          <span class="bio-label">Liveness Check</span>
+          <span class="bio-value" id="bioLiveness">--</span>
+        </div>
+        <div class="bio-row">
+          <span class="bio-label">Spoofing Detection</span>
+          <span class="bio-value" id="bioSpoof">--</span>
+        </div>
+        <div class="bio-row">
+          <span class="bio-label">Identity</span>
+          <span class="bio-value" id="bioIdentity">--</span>
+        </div>
+      </div>
+
+      <button id="scanBtn" onclick="startFacialScan()">👤 START FACIAL SCAN</button>
+      <button class="back-btn" onclick="window.location.href='dashboard.html'">⬅️ Back to Dashboard</button>
+    </div>
+
+    <script>
+
+      var scanning = false;
+      var progress = 0;
+      var stream = null;
+
+      // HUD clock
+      function updateHUD() {
+        document.getElementById("hudTime").innerText = new Date().toLocaleTimeString();
+      }
+      setInterval(updateHUD, 1000);
+      updateHUD();
+
+      // Start camera
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          document.getElementById("video").srcObject = stream;
+          document.getElementById("statusCam").innerText = "📷 CAM: ONLINE";
+          return true;
+        } catch(e) {
+          document.getElementById("statusCam").innerText = "📷 CAM: ERROR";
+          return false;
+        }
+      }
+
+      async function startFacialScan() {
+        if (scanning) return;
+        scanning = true;
+
+        var btn = document.getElementById("scanBtn");
+        btn.disabled = true;
+        btn.innerText = "🔍 SCANNING...";
+
+        // Start camera
+        var camOk = await startCamera();
+
+        var progressBar = document.getElementById("progressBar");
+        var progressFill = document.getElementById("progressFill");
+        var statusText = document.getElementById("statusText");
+        var scanLine = document.getElementById("scanLine");
+        var faceBox = document.getElementById("faceBox");
+
+        progressBar.style.display = "block";
+        scanLine.style.display = "block";
+
+        var steps = [
+          { pct: 10, msg: "📷 Initializing camera feed...", ai: "🤖 AI: LOADING" },
+          { pct: 20, msg: "🔍 Detecting faces in frame...", ai: "🤖 AI: ACTIVE", faces: "FACES: 1" },
+          { pct: 35, msg: "📊 Mapping facial landmarks...", conf: "CONF: 34%" },
+          { pct: 50, msg: "🧬 Extracting biometric vectors...", conf: "CONF: 51%" },
+          { pct: 65, msg: "🔐 Comparing against database...", conf: "CONF: 65%" },
+          { pct: 80, msg: "🤖 Running liveness detection...", conf: "CONF: 80%" },
+          { pct: 90, msg: "✅ Verifying identity match...", conf: "CONF: 94%" },
+          { pct: 100, msg: "🎯 Identity confirmed!", conf: "CONF: 99%" }
+        ];
+
+        var i = 0;
+        var stepInterval = setInterval(function() {
+          if (i >= steps.length) {
+            clearInterval(stepInterval);
+            finishScan();
+            return;
+          }
+
+          var step = steps[i];
+          progressFill.style.width = step.pct + "%";
+          statusText.innerText = step.msg;
+          if (step.ai) document.getElementById("statusAI").innerText = step.ai;
+          if (step.faces) document.getElementById("faceCount").innerText = step.faces;
+          if (step.conf) document.getElementById("confidence").innerText = step.conf;
+
+          // Show face box after detection
+          if (i >= 1) {
+            faceBox.style.display = "block";
+            document.getElementById("faceLabel").innerText = i >= 6 ? "MARK ✓" : "SCANNING...";
+          }
+
+          i++;
+        }, 700);
+      }
+
+      function finishScan() {
+        // Show biometric data
+        document.getElementById("bioData").style.display = "block";
+        document.getElementById("bioFaceId").innerText = "FID-" + Math.floor(Math.random()*900000+100000);
+        document.getElementById("bioScore").innerText = "99.7%";
+        document.getElementById("bioLiveness").innerText = "✅ PASSED";
+        document.getElementById("bioSpoof").innerText = "✅ NO SPOOFING";
+        document.getElementById("bioIdentity").innerText = "✅ MARK — ADMIN";
+        document.getElementById("statusMatch").innerText = "🔍 MATCH: 99.7%";
+        document.getElementById("faceLabel").innerText = "MARK — VERIFIED ✓";
+
+        // Show success overlay
+        var overlay = document.getElementById("successOverlay");
+        overlay.style.display = "flex";
+
+        setTimeout(function() {
+          window.location.href = "dashboard.html";
+        }, 2500);
+      }
+
+    </script>
+
+  </body>
+</html>

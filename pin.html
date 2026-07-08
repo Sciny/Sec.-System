@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PIN Entry</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .pin-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 15px;
+        padding: 40px;
+        width: 380px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0,255,136,0.2);
+      }
+
+      .shield-icon {
+        font-size: 60px;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+
+      h1 { color: #00ff88; font-size: 24px; margin-bottom: 8px; }
+      p { color: #aaaaaa; font-size: 14px; margin-bottom: 25px; }
+
+      .pin-display {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 15px;
+        font-size: 30px;
+        letter-spacing: 15px;
+        color: #00ff88;
+        margin-bottom: 25px;
+        min-height: 60px;
+      }
+
+      .keypad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .key {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 18px;
+        font-size: 20px;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.2s;
+      }
+
+      .key:hover { background-color: #00ff88; color: #0a0a2e; }
+
+      .key-clear { border-color: #ff4444; color: #ff4444; }
+      .key-clear:hover { background-color: #ff4444; color: white; }
+
+      .key-enter {
+        border-color: #00ff88;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        font-weight: bold;
+      }
+
+      .key-enter:hover { background-color: #00cc6a; }
+
+      .error-msg { color: #ff4444; font-size: 13px; margin-top: 10px; display: none; }
+      .attempts { color: #ffaa00; font-size: 13px; margin-top: 8px; }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="pin-box">
+      <div class="shield-icon">🛡️</div>
+      <h1>PIN Verification</h1>
+      <p>Enter your 4-digit PIN to continue</p>
+
+      <div class="pin-display" id="pinDisplay">----</div>
+
+      <div class="keypad">
+        <div class="key" onclick="addPin('1')">1</div>
+        <div class="key" onclick="addPin('2')">2</div>
+        <div class="key" onclick="addPin('3')">3</div>
+        <div class="key" onclick="addPin('4')">4</div>
+        <div class="key" onclick="addPin('5')">5</div>
+        <div class="key" onclick="addPin('6')">6</div>
+        <div class="key" onclick="addPin('7')">7</div>
+        <div class="key" onclick="addPin('8')">8</div>
+        <div class="key" onclick="addPin('9')">9</div>
+        <div class="key key-clear" onclick="clearPin()">CLR</div>
+        <div class="key" onclick="addPin('0')">0</div>
+        <div class="key key-enter" onclick="checkPin()">✓</div>
+      </div>
+
+      <div class="error-msg" id="errorMsg">❌ Wrong PIN!</div>
+      <div class="attempts" id="attemptsMsg"></div>
+    </div>
+
+    <script>
+
+      var pin = "";
+      var correctPin = "1234";
+      var attempts = 0;
+      var maxAttempts = 3;
+
+      function addPin(num) {
+        if (pin.length < 4) {
+          pin += num;
+          updateDisplay();
+        }
+      }
+
+      function clearPin() {
+        pin = "";
+        updateDisplay();
+        document.getElementById("errorMsg").style.display = "none";
+      }
+
+      function updateDisplay() {
+        var display = "";
+        for (var i = 0; i < 4; i++) {
+          display += i < pin.length ? "●" : "-";
+        }
+        document.getElementById("pinDisplay").innerText = display;
+      }
+
+      function checkPin() {
+        if (attempts >= maxAttempts) {
+          document.getElementById("errorMsg").innerText = "🔒 Locked! Too many failed attempts.";
+          document.getElementById("errorMsg").style.display = "block";
+          return;
+        }
+
+        if (pin === correctPin) {
+          localStorage.setItem("loginTime", new Date().toLocaleString());
+          window.location.href = "2fa.html";
+        } else {
+          attempts++;
+          pin = "";
+          updateDisplay();
+          var remaining = maxAttempts - attempts;
+          document.getElementById("errorMsg").style.display = "block";
+          if (remaining > 0) {
+            document.getElementById("errorMsg").innerText = "❌ Wrong PIN!";
+            document.getElementById("attemptsMsg").innerText = "⚠️ " + remaining + " attempts remaining";
+          } else {
+            document.getElementById("errorMsg").innerText = "🔒 Locked! Too many failed attempts.";
+            document.getElementById("attemptsMsg").innerText = "";
+          }
+        }
+      }
+
+    </script>
+
+  </body>
+</html>

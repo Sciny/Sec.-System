@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Admin Dashboard</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        color: white;
+        transition: all 0.3s;
+      }
+
+      body.light { background-color: #f0f0f0; color: #333; }
+
+      nav {
+        background-color: #1a1a4e;
+        border-bottom: 1px solid #00ff88;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      body.light nav { background-color: #ffffff; border-color: #1a73e8; }
+      nav .logo { color: #00ff88; font-size: 20px; font-weight: bold; }
+      body.light nav .logo { color: #1a73e8; }
+
+      .nav-right { display: flex; gap: 10px; align-items: center; }
+
+      .session-timer {
+        color: #ffaa00;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 8px 15px;
+        border: 1px solid #ffaa00;
+        border-radius: 20px;
+      }
+
+      .session-timer.warning {
+        color: #ff4444;
+        border-color: #ff4444;
+        animation: blink 1s infinite;
+      }
+
+      @keyframes blink {
+        0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; }
+      }
+
+      .nav-btn {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 8px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .nav-btn:hover { background-color: #00ff88; color: #0a0a2e; }
+      body.light .nav-btn { background-color: #f0f0f0; border-color: #1a73e8; color: #1a73e8; }
+
+      .logout-btn {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .logout-btn:hover { background-color: #cc0000; }
+
+      .clock-bar {
+        background-color: #111133;
+        text-align: center;
+        padding: 10px;
+        border-bottom: 1px solid #00ff8844;
+      }
+
+      body.light .clock-bar { background-color: #e0e0e0; }
+
+      .clock-bar .time {
+        color: #00ff88;
+        font-size: 28px;
+        font-weight: bold;
+        letter-spacing: 3px;
+      }
+
+      body.light .clock-bar .time { color: #1a73e8; }
+      .clock-bar .date { color: #aaaaaa; font-size: 14px; margin-top: 3px; }
+
+      /* Threat alert banner */
+      .threat-banner {
+        display: none;
+        background-color: #ff4444;
+        color: white;
+        text-align: center;
+        padding: 12px;
+        font-weight: bold;
+        font-size: 15px;
+        animation: blink 0.5s infinite;
+      }
+
+      .welcome { text-align: center; padding: 30px 20px 15px; }
+      .welcome h1 { color: #00ff88; font-size: 32px; margin-bottom: 8px; }
+      body.light .welcome h1 { color: #1a73e8; }
+      .welcome p { color: #aaaaaa; font-size: 15px; }
+
+      .cards {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 20px 30px;
+      }
+
+      .card {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 12px;
+        padding: 25px;
+        width: 180px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0,255,136,0.1);
+        transition: transform 0.2s;
+        cursor: pointer;
+      }
+
+      .card:hover { transform: translateY(-5px); }
+      body.light .card { background-color: #ffffff; border-color: #1a73e8; }
+      .card .icon { font-size: 40px; margin-bottom: 15px; }
+      .card h3 { color: #00ff88; margin-bottom: 8px; font-size: 15px; }
+      body.light .card h3 { color: #1a73e8; }
+      .card p { color: #aaaaaa; font-size: 13px; }
+
+      .card.threat { border-color: #ff4444; animation: blink 1s infinite; }
+      .card.threat h3 { color: #ff4444; }
+
+      .grid-section {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        padding: 10px 30px;
+        flex-wrap: wrap;
+      }
+
+      .box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 10px;
+        width: 45%;
+        min-width: 280px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      body.light .box { background-color: #ffffff; border-color: #1a73e8; }
+
+      .box h3 {
+        color: #00ff88;
+        margin-bottom: 15px;
+        text-align: center;
+        font-size: 16px;
+      }
+
+      body.light .box h3 { color: #1a73e8; }
+
+      .status-item, .log-item, .threat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-bottom: 1px solid #0a0a2e;
+        font-size: 14px;
+        color: #cccccc;
+      }
+
+      body.light .status-item,
+      body.light .log-item,
+      body.light .threat-item {
+        border-color: #e0e0e0;
+        color: #555;
+      }
+
+      .online { color: #00ff88; font-weight: bold; }
+      .log-time { color: #00ff88; font-size: 13px; }
+      body.light .log-time { color: #1a73e8; }
+
+      .threat-level-low { color: #00ff88; font-weight: bold; }
+      .threat-level-med { color: #ffaa00; font-weight: bold; }
+      .threat-level-high { color: #ff4444; font-weight: bold; animation: blink 1s infinite; }
+
+      /* Chart */
+      .chart-container {
+        padding: 10px 0;
+      }
+
+      .chart-bar-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 10px;
+      }
+
+      .chart-label {
+        width: 30px;
+        font-size: 12px;
+        color: #aaaaaa;
+        text-align: right;
+      }
+
+      .chart-bar-bg {
+        flex: 1;
+        height: 22px;
+        background-color: #0a0a2e;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      body.light .chart-bar-bg { background-color: #e0e0e0; }
+
+      .chart-bar {
+        height: 100%;
+        background-color: #00ff88;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        padding-left: 8px;
+        font-size: 11px;
+        color: #0a0a2e;
+        font-weight: bold;
+        transition: width 1s;
+      }
+
+      body.light .chart-bar { background-color: #1a73e8; color: white; }
+
+      /* Forms */
+      .box input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 8px;
+        border: 1px solid #00ff88;
+        background-color: #0a0a2e;
+        color: white;
+        font-size: 14px;
+        outline: none;
+      }
+
+      body.light .box input {
+        background-color: #f0f0f0;
+        border-color: #1a73e8;
+        color: #333;
+      }
+
+      .box button {
+        width: 100%;
+        padding: 10px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+
+      body.light .box button { background-color: #1a73e8; color: white; }
+
+      .success-msg {
+        color: #00ff88;
+        font-size: 13px;
+        text-align: center;
+        display: none;
+        margin-top: 5px;
+      }
+
+      .user-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 10px;
+        border-bottom: 1px solid #0a0a2e;
+        font-size: 14px;
+        color: #cccccc;
+      }
+
+      body.light .user-item { border-color: #e0e0e0; color: #555; }
+
+      .remove-btn {
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        padding: 3px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .timeout-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.85);
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        z-index: 999;
+      }
+
+      .timeout-overlay h2 { color: #ff4444; font-size: 30px; margin-bottom: 15px; }
+      .timeout-overlay p { color: #aaaaaa; margin-bottom: 25px; }
+      .timeout-overlay button {
+        padding: 12px 30px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        width: auto;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="timeout-overlay" id="timeoutOverlay">
+      <h2>⏰ Session Expired!</h2>
+      <p>You have been logged out due to inactivity.</p>
+      <button onclick="window.location.href='index.html'">🔐 Login Again</button>
+    </div>
+
+    <div class="threat-banner" id="threatBanner">
+      🚨 WARNING! High threat detected! Immediate action required! 🚨
+    </div>
+
+    <nav>
+      <div class="logo">🔐 Secure Admin Dashboard</div>
+      <div class="nav-right">
+        <div class="session-timer" id="sessionTimer">⏱️ 05:00</div>
+        <button class="nav-btn" onclick="window.location.href='cctv.html'">📹 CCTV</button>
+        <button class="nav-btn" onclick="window.location.href='facial.html'">👤 FACIAL</button>
+       <button class="nav-btn" onclick="window.location.href='voice.html'">🎤 VOICE</button>
+<button class="nav-btn" onclick="window.location.href='terminal.html'">💻 TERMINAL</button>
+<button class="nav-btn" onclick="window.location.href='drone.html'">🚁 DRONE</button>
+<button class="nav-btn" onclick="window.location.href='nuclear.html'" style="border-color:#ff4444;color:#ff4444;">☢️ NUCLEAR</button>
+ <button class="nav-btn" onclick="window.location.href='satellite.html'">🛸 SAT</button>
+<button class="nav-btn" onclick="window.location.href='weather.html'">🌍 WEATHER</button>
+<button class="nav-btn" onclick="window.location.href='mission.html'">🕵️ MISSION</button>
+<button class="nav-btn" onclick="window.location.href='biometric.html'">🧬 BIO</button>
+<button class="nav-btn" onclick="showSecretPanel()">🕵️ ADMIN</button>
+<button class="nav-btn" onclick="confirmLockdown()" style="border-color:#ff4444;color:#ff4444;">☢️ LOCKDOWN</button>
+        <button class="nav-btn" onclick="toggleMode()">☀️ Light Mode</button>
+        <button class="logout-btn" onclick="logout()">🚪 LOGOUT</button>
+      </div>
+    </nav>
+
+    <div class="clock-bar">
+      <div class="time" id="clock">00:00:00</div>
+      <div class="date" id="dateDisplay"></div>
+    </div>
+
+    <div class="welcome">
+      <h1>Welcome, Mark! 👋</h1>
+      <p>You have successfully accessed the secure system</p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="icon">👥</div>
+        <h3>Total Users</h3>
+        <p id="userCount">1 Active User</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <h3>Security</h3>
+        <p>All Systems Secure</p>
+      </div>
+      <div class="card">
+        <div class="icon">📊</div>
+        <h3>Logins Today</h3>
+        <p id="loginCount">1 Login</p>
+      </div>
+      <div class="card" id="threatCard">
+        <div class="icon">⚠️</div>
+        <h3>Threats</h3>
+        <p id="threatCount">Scanning...</p>
+      </div>
+      <div class="card" onclick="window.location.href='cctv.html'">
+        <div class="icon">📹</div>
+        <h3>CCTV</h3>
+        <p>4 Cameras Live</p>
+      </div>
+    </div>
+
+    <div class="grid-section">
+
+      <div class="box">
+        <h3>🟢 System Status</h3>
+        <div class="status-item">
+          <span>Login System</span>
+          <span class="online">● ONLINE</span>
+        </div>
+        <div class="status-item">
+          <span>PIN Verification</span>
+          <span class="online">● ONLINE</span>
+        </div>
+        <div class="status-item">
+          <span>Firewall</span>
+          <span class="online">● ONLINE</span>
+        </div>
+        <div class="status-item">
+          <span>CCTV System</span>
+          <span class="online">● ONLINE</span>
+        </div>
+        <div class="status-item">
+          <span>Last Login</span>
+          <span class="online" id="lastLogin">Loading...</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>📋 Activity Log</h3>
+        <div class="log-item">
+          <span>✅ Login successful</span>
+          <span class="log-time" id="loginTime">--</span>
+        </div>
+        <div class="log-item">
+          <span>🛡️ PIN verified</span>
+          <span class="log-time" id="pinTime">--</span>
+        </div>
+        <div class="log-item">
+          <span>🔐 Session started</span>
+          <span class="log-time" id="sessionTime">--</span>
+        </div>
+        <div class="log-item">
+          <span>🌐 Dashboard loaded</span>
+          <span class="log-time" id="dashTime">--</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>🚨 Threat Detection</h3>
+        <div class="threat-item">
+          <span>Brute Force Attempt</span>
+          <span class="threat-level-low">● LOW</span>
+        </div>
+        <div class="threat-item">
+          <span>Unauthorized Access</span>
+          <span class="threat-level-low">● LOW</span>
+        </div>
+        <div class="threat-item">
+          <span>Network Intrusion</span>
+          <span class="threat-level-med" id="networkThreat">● MEDIUM</span>
+        </div>
+        <div class="threat-item">
+          <span>System Vulnerability</span>
+          <span class="threat-level-high" id="sysThreat">● HIGH</span>
+        </div>
+        <br>
+        <button onclick="runScan()" style="width:100%;padding:10px;background:#00ff88;color:#0a0a2e;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">🔍 Run Security Scan</button>
+        <div class="success-msg" id="scanMsg">✅ Scan complete! System secured.</div>
+      </div>
+
+      <div class="box">
+        <h3>📈 Login History (This Week)</h3>
+        <div class="chart-container">
+          <div class="chart-bar-row">
+            <div class="chart-label">Mon</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:40%">2</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Tue</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:60%">3</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Wed</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:80%">4</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Thu</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:20%">1</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Fri</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:100%">5</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Sat</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:40%">2</div></div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">Sun</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:20%" id="todayBar">1</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>🔑 Change Password</h3>
+        <input type="password" id="currentPass" placeholder="Current password" />
+        <input type="password" id="newPass" placeholder="New password" />
+        <input type="password" id="confirmPass" placeholder="Confirm new password" />
+        <button onclick="changePassword()">🔐 Update Password</button>
+        <div class="success-msg" id="passMsg"></div>
+      </div>
+
+      <div class="box">
+        <h3>👥 User Management</h3>
+        <input type="text" id="newUsername" placeholder="New username" />
+        <input type="password" id="newPassword" placeholder="New password" />
+        <button onclick="addUser()">➕ Add User</button>
+        <div class="user-list" id="userList"></div>
+      </div>
+
+    </div>
+
+    <script>
+
+      // Clock
+      function updateClock() {
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2,"0");
+        var m = String(now.getMinutes()).padStart(2,"0");
+        var s = String(now.getSeconds()).padStart(2,"0");
+        document.getElementById("clock").innerText = h+":"+m+":"+s;
+        var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        document.getElementById("dateDisplay").innerText = days[now.getDay()]+", "+now.getDate()+" "+months[now.getMonth()]+" "+now.getFullYear();
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
+      // Activity log
+      var loginTime = localStorage.getItem("loginTime") || "Unknown";
+      var now = new Date().toLocaleTimeString();
+      document.getElementById("lastLogin").innerText = loginTime;
+      document.getElementById("loginTime").innerText = loginTime;
+      document.getElementById("pinTime").innerText = now;
+      document.getElementById("sessionTime").innerText = now;
+      document.getElementById("dashTime").innerText = now;
+
+      // Session timer
+      var sessionSeconds = 300;
+      function updateSessionTimer() {
+        var mins = Math.floor(sessionSeconds/60);
+        var secs = sessionSeconds%60;
+        var timer = document.getElementById("sessionTimer");
+        timer.innerText = "⏱️ "+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");
+        if (sessionSeconds <= 60) timer.classList.add("warning");
+        if (sessionSeconds <= 0) {
+          document.getElementById("timeoutOverlay").style.display = "flex";
+          clearInterval(sessionInterval);
+        }
+        sessionSeconds--;
+      }
+      var sessionInterval = setInterval(updateSessionTimer, 1000);
+      updateSessionTimer();
+      document.addEventListener("mousemove", function() {
+        sessionSeconds = 300;
+        document.getElementById("sessionTimer").classList.remove("warning");
+      });
+
+      // Threat detection
+      var threatLevel = "HIGH";
+      document.getElementById("threatCount").innerText = "1 High Threat";
+      document.getElementById("threatCard").classList.add("threat");
+      document.getElementById("threatBanner").style.display = "block";
+
+      function runScan() {
+        document.getElementById("scanMsg").style.display = "block";
+        document.getElementById("scanMsg").innerText = "🔍 Scanning...";
+        setTimeout(function() {
+          document.getElementById("sysThreat").innerText = "● LOW";
+          document.getElementById("sysThreat").className = "threat-level-low";
+          document.getElementById("networkThreat").innerText = "● LOW";
+          document.getElementById("networkThreat").className = "threat-level-low";
+          document.getElementById("threatCount").innerText = "No Threats";
+          document.getElementById("threatCard").classList.remove("threat");
+          document.getElementById("threatBanner").style.display = "none";
+          document.getElementById("scanMsg").innerText = "✅ Scan complete! System secured.";
+        }, 2000);
+      }
+
+      // Password change
+      var currentPassword = "mark1234";
+      function changePassword() {
+        var current = document.getElementById("currentPass").value;
+        var newP = document.getElementById("newPass").value;
+        var confirm = document.getElementById("confirmPass").value;
+        var msg = document.getElementById("passMsg");
+        msg.style.display = "block";
+        if (current !== currentPassword) {
+          msg.style.color = "#ff4444";
+          msg.innerText = "❌ Current password is wrong!";
+        } else if (newP.length < 4) {
+          msg.style.color = "#ff4444";
+          msg.innerText = "❌ New password too short!";
+        } else if (newP !== confirm) {
+          msg.style.color = "#ff4444";
+          msg.innerText = "❌ Passwords don't match!";
+        } else {
+          currentPassword = newP;
+          msg.style.color = "#00ff88";
+          msg.innerText = "✅ Password changed successfully!";
+          document.getElementById("currentPass").value = "";
+          document.getElementById("newPass").value = "";
+          document.getElementById("confirmPass").value = "";
+        }
+      }
+
+      // Dark/Light mode
+      var isLight = false;
+      function toggleMode() {
+        isLight = !isLight;
+        document.body.classList.toggle("light");
+        var btns = document.querySelectorAll(".nav-btn");
+        btns.forEach(function(btn) {
+          if (btn.innerText.includes("Light") || btn.innerText.includes("Dark")) {
+            btn.innerText = isLight ? "🌙 Dark Mode" : "☀️ Light Mode";
+          }
+        });
+      }
+
+      // Logout
+      function logout() {
+        localStorage.removeItem("loginTime");
+        window.location.href = "index.html";
+      }
+
+      // User management
+      var users = [{ name: "mark", pass: "mark1234" }];
+      function renderUsers() {
+        var list = document.getElementById("userList");
+        list.innerHTML = "";
+        users.forEach(function(user, index) {
+          var item = document.createElement("div");
+          item.className = "user-item";
+          item.innerHTML = '👤 '+user.name+' <button class="remove-btn" onclick="removeUser('+index+')">Remove</button>';
+          list.appendChild(item);
+        });
+        document.getElementById("userCount").innerText = users.length+" Active User(s)";
+      }
+
+      function addUser() {
+        var name = document.getElementById("newUsername").value.trim();
+        var pass = document.getElementById("newPassword").value.trim();
+        if (name && pass) {
+          users.push({ name: name, pass: pass });
+          document.getElementById("newUsername").value = "";
+          document.getElementById("newPassword").value = "";
+          renderUsers();
+        }
+      }
+
+      function removeUser(index) {
+        if (users[index].name === "mark") {
+          alert("Cannot remove the main admin!");
+          return;
+        }
+        users.splice(index, 1);
+        renderUsers();
+      }
+
+      renderUsers();
+
+   // Secret panel
+      function showSecretPanel() {
+        document.getElementById("secretPanel").style.display = "flex";
+      }
+
+      function hideSecretPanel() {
+        document.getElementById("secretPanel").style.display = "none";
+      }
+
+      // Lockdown confirm
+      function confirmLockdown() {
+        if (confirm("⚠️ WARNING! Initiate system lockdown and self-destruct sequence?")) {
+          window.location.href = "lockdown.html";
+        }
+      } </script>
+
+  </body>
+</html>

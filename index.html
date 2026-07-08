@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Secure Access System</title>
+    <style>
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        transition: all 0.3s;
+      }
+
+      body.light {
+        background-color: #f0f0f0;
+      }
+
+      .toggle-mode {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 8px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      body.light .toggle-mode {
+        background-color: #ffffff;
+        border-color: #1a73e8;
+        color: #1a73e8;
+      }
+
+      .login-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 15px;
+        padding: 40px;
+        width: 380px;
+        text-align: center;
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+        transition: all 0.3s;
+      }
+
+      body.light .login-box {
+        background-color: #ffffff;
+        border-color: #1a73e8;
+        box-shadow: 0 0 30px rgba(26, 115, 232, 0.2);
+      }
+
+      .lock-icon {
+        font-size: 60px;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+      }
+
+      h1 {
+        color: #00ff88;
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+
+      body.light h1 { color: #1a73e8; }
+
+      p {
+        color: #aaaaaa;
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border: 1px solid #00ff88;
+        background-color: #0a0a2e;
+        color: white;
+        font-size: 15px;
+        outline: none;
+      }
+
+      body.light input {
+        background-color: #f0f0f0;
+        border-color: #1a73e8;
+        color: #333333;
+      }
+
+      input::placeholder { color: #666666; }
+
+      .strength-bar {
+        width: 100%;
+        height: 6px;
+        background-color: #333;
+        border-radius: 3px;
+        margin-bottom: 5px;
+        overflow: hidden;
+      }
+
+      .strength-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 3px;
+        transition: width 0.3s, background-color 0.3s;
+      }
+
+      .strength-text {
+        font-size: 12px;
+        margin-bottom: 12px;
+        text-align: left;
+        color: #aaaaaa;
+      }
+
+      button {
+        width: 100%;
+        padding: 13px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 5px;
+      }
+
+      button:hover { background-color: #00cc6a; }
+
+      body.light button {
+        background-color: #1a73e8;
+        color: white;
+      }
+
+      .error-msg {
+        color: #ff4444;
+        font-size: 13px;
+        margin-top: 15px;
+        display: none;
+      }
+
+      .attempts {
+        color: #ffaa00;
+        font-size: 13px;
+        margin-top: 10px;
+      }
+
+      .shake {
+        animation: shake 0.4s;
+      }
+
+      @keyframes shake {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        50% { transform: translateX(10px); }
+        75% { transform: translateX(-10px); }
+        100% { transform: translateX(0); }
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <button class="toggle-mode" onclick="toggleMode()">🌙 Dark Mode</button>
+
+    <div class="login-box" id="loginBox">
+      <div class="lock-icon">🔐</div>
+      <h1>Secure Access System</h1>
+      <p>Enter your credentials to continue</p>
+
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" oninput="checkStrength()" />
+
+      <div class="strength-bar">
+        <div class="strength-fill" id="strengthFill"></div>
+      </div>
+      <div class="strength-text" id="strengthText">Enter a password</div>
+
+      <button onclick="checkLogin()">LOGIN</button>
+
+      <div class="error-msg" id="errorMsg">❌ Wrong username or password!</div>
+      <div class="attempts" id="attemptsMsg"></div>
+    </div>
+
+    <script>
+      var attempts = 0;
+      var maxAttempts = 3;
+      var isLight = false;
+
+      // Sound effects using Web Audio API
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      function playSound(type) {
+        var oscillator = audioCtx.createOscillator();
+        var gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === "error") {
+          oscillator.frequency.setValueAtTime(200, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+          gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.3);
+        } else if (type === "success") {
+          oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3);
+          gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.3);
+        }
+      }
+
+      function toggleMode() {
+        isLight = !isLight;
+        document.body.classList.toggle("light");
+        var btn = document.querySelector(".toggle-mode");
+        btn.innerText = isLight ? "🌙 Dark Mode" : "☀️ Light Mode";
+      }
+
+      function checkStrength() {
+        var password = document.getElementById("password").value;
+        var fill = document.getElementById("strengthFill");
+        var text = document.getElementById("strengthText");
+
+        if (password.length === 0) {
+          fill.style.width = "0%";
+          text.innerText = "Enter a password";
+          fill.style.backgroundColor = "#333";
+        } else if (password.length < 4) {
+          fill.style.width = "25%";
+          fill.style.backgroundColor = "#ff4444";
+          text.innerText = "⚠️ Weak password";
+          text.style.color = "#ff4444";
+        } else if (password.length < 7) {
+          fill.style.width = "55%";
+          fill.style.backgroundColor = "#ffaa00";
+          text.innerText = "⚡ Medium password";
+          text.style.color = "#ffaa00";
+        } else {
+          fill.style.width = "100%";
+          fill.style.backgroundColor = "#00ff88";
+          text.innerText = "✅ Strong password";
+          text.style.color = "#00ff88";
+        }
+      }
+
+      function checkLogin() {
+        var username = document.getElementById("username").value;
+        var password = document.getElementById("password").value;
+        var correctUser = "mark";
+        var correctPass = "mark1234";
+
+        if (attempts >= maxAttempts) {
+          document.getElementById("errorMsg").innerText = "🔒 Account locked! Too many failed attempts.";
+          document.getElementById("errorMsg").style.display = "block";
+          playSound("error");
+          return;
+        }
+
+        if (username === correctUser && password === correctPass) {
+          playSound("success");
+          localStorage.setItem("loginTime", new Date().toLocaleString());
+          setTimeout(function() {
+            window.location.href = "pin.html";
+          }, 500);
+        } else {
+          attempts++;
+          var remaining = maxAttempts - attempts;
+          document.getElementById("errorMsg").style.display = "block";
+          playSound("error");
+
+          // Shake animation
+          var box = document.getElementById("loginBox");
+          box.classList.add("shake");
+          setTimeout(function() { box.classList.remove("shake"); }, 400);
+
+          if (remaining > 0) {
+            document.getElementById("attemptsMsg").innerText = "⚠️ " + remaining + " attempts remaining";
+          } else {
+            document.getElementById("errorMsg").innerText = "🔒 Account locked! Too many failed attempts.";
+            document.getElementById("attemptsMsg").innerText = "";
+          }
+        }
+      }
+    </script>
+
+  </body>
+</html>

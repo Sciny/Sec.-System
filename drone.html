@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Drone Surveillance</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        color: white;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      nav {
+        background-color: #1a1a4e;
+        border-bottom: 1px solid #00ff88;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav .logo { color: #00ff88; font-size: 16px; font-weight: bold; }
+
+      .nav-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .nav-btn:hover { background-color: #00ff8822; }
+
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Map area */
+      .map-area {
+        flex: 1;
+        position: relative;
+        background-color: #050510;
+        overflow: hidden;
+      }
+
+      /* Grid map */
+      .map-grid {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image:
+          linear-gradient(rgba(0,255,136,0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,255,136,0.07) 1px, transparent 1px);
+        background-size: 40px 40px;
+      }
+
+      /* Roads */
+      .road-h {
+        position: absolute;
+        height: 6px;
+        background-color: rgba(0,255,136,0.15);
+        width: 100%;
+      }
+
+      .road-v {
+        position: absolute;
+        width: 6px;
+        background-color: rgba(0,255,136,0.15);
+        height: 100%;
+      }
+
+      /* Buildings */
+      .building {
+        position: absolute;
+        background-color: rgba(0,255,136,0.08);
+        border: 1px solid rgba(0,255,136,0.2);
+      }
+
+      /* Drone */
+      .drone {
+        position: absolute;
+        font-size: 28px;
+        transition: left 0.1s, top 0.1s;
+        z-index: 10;
+        filter: drop-shadow(0 0 8px #00ff88);
+      }
+
+      /* Drone circle */
+      .drone-range {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        border: 1px solid rgba(0,255,136,0.3);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9;
+        pointer-events: none;
+      }
+
+      /* Scan line from drone */
+      .drone-scan {
+        position: absolute;
+        width: 80px;
+        height: 2px;
+        background: linear-gradient(to right, rgba(0,255,136,0.8), transparent);
+        transform-origin: left center;
+        z-index: 8;
+        animation: rotatescan 2s linear infinite;
+      }
+
+      @keyframes rotatescan {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Trail */
+      .trail {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background-color: rgba(0,255,136,0.4);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: fadetrail 2s forwards;
+      }
+
+      @keyframes fadetrail {
+        0% { opacity: 0.6; }
+        100% { opacity: 0; }
+      }
+
+      /* Target markers */
+      .target {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ff4444;
+        border-radius: 50%;
+        animation: targetblink 1s infinite;
+        z-index: 7;
+      }
+
+      .target::after {
+        content: "";
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background-color: #ff4444;
+        border-radius: 50%;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      @keyframes targetblink {
+        0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; }
+      }
+
+      /* HUD overlays */
+      .hud-tl {
+        position: absolute;
+        top: 10px; left: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        z-index: 20;
+      }
+
+      .hud-tr {
+        position: absolute;
+        top: 10px; right: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        text-align: right;
+        z-index: 20;
+      }
+
+      .hud-bl {
+        position: absolute;
+        bottom: 10px; left: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        z-index: 20;
+      }
+
+      /* Crosshair */
+      .crosshair {
+        position: absolute;
+        z-index: 15;
+        pointer-events: none;
+      }
+
+      .crosshair::before {
+        content: "";
+        position: absolute;
+        width: 30px;
+        height: 2px;
+        background-color: rgba(0,255,136,0.5);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .crosshair::after {
+        content: "";
+        position: absolute;
+        width: 2px;
+        height: 30px;
+        background-color: rgba(0,255,136,0.5);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      /* Side panel */
+      .side-panel {
+        width: 260px;
+        background-color: #0d0d2e;
+        border-left: 1px solid #00ff88;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow-y: auto;
+      }
+
+      .panel-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .panel-box h3 {
+        color: #00ff88;
+        font-size: 13px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 4px 0;
+        border-bottom: 1px solid #0a0a2e;
+        color: #cccccc;
+      }
+
+      .stat-val { color: #00ff88; font-family: monospace; }
+      .stat-warn { color: #ffaa00; }
+      .stat-danger { color: #ff4444; }
+
+      /* Battery bar */
+      .battery-bar {
+        width: 100%;
+        height: 8px;
+        background-color: #0a0a2e;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      .battery-fill {
+        height: 100%;
+        background-color: #00ff88;
+        border-radius: 4px;
+        transition: width 1s;
+      }
+
+      /* Controls */
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        margin-top: 5px;
+      }
+
+      .ctrl-btn {
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        text-align: center;
+      }
+
+      .ctrl-btn:hover { background-color: #00ff8822; }
+      .ctrl-btn:active { background-color: #00ff8844; }
+      .ctrl-btn.empty { border-color: transparent; background: transparent; cursor: default; }
+
+      /* Camera feed */
+      .cam-feed {
+        width: 100%;
+        height: 120px;
+        background-color: #050510;
+        border: 1px solid #00ff88;
+        border-radius: 5px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .cam-noise {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0,255,136,0.03) 2px,
+          rgba(0,255,136,0.03) 4px
+        );
+      }
+
+      .cam-scan {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(to right, transparent, rgba(0,255,136,0.3), transparent);
+        animation: camscan 2s linear infinite;
+      }
+
+      @keyframes camscan {
+        0% { top: 0%; } 100% { top: 100%; }
+      }
+
+      .cam-label {
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        z-index: 1;
+        text-align: center;
+      }
+
+      /* Log */
+      .log-area {
+        max-height: 120px;
+        overflow-y: auto;
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .log-line {
+        color: #aaaaaa;
+        padding: 2px 0;
+        border-bottom: 1px solid #0a0a2e;
+      }
+
+      .log-line.alert { color: #ff4444; }
+      .log-line.ok { color: #00ff88; }
+
+    </style>
+  </head>
+  <body>
+
+    <nav>
+      <div class="logo">🚁 DRONE SURVEILLANCE SYSTEM — MARK@ADMIN</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="color:#aaa;font-size:12px;" id="navTime"></span>
+        <button class="nav-btn" onclick="window.location.href='dashboard.html'">⬅ Dashboard</button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <!-- Map -->
+      <div class="map-area" id="mapArea">
+        <div class="map-grid"></div>
+
+        <!-- Roads -->
+        <div class="road-h" style="top:25%"></div>
+        <div class="road-h" style="top:50%"></div>
+        <div class="road-h" style="top:75%"></div>
+        <div class="road-v" style="left:25%"></div>
+        <div class="road-v" style="left:50%"></div>
+        <div class="road-v" style="left:75%"></div>
+
+        <!-- Buildings -->
+        <div class="building" style="top:10%;left:10%;width:80px;height:60px;"></div>
+        <div class="building" style="top:10%;left:30%;width:60px;height:80px;"></div>
+        <div class="building" style="top:10%;left:55%;width:100px;height:50px;"></div>
+        <div class="building" style="top:30%;left:30%;width:70px;height:70px;"></div>
+        <div class="building" style="top:55%;left:10%;width:90px;height:60px;"></div>
+        <div class="building" style="top:55%;left:55%;width:80px;height:80px;"></div>
+        <div class="building" style="top:55%;left:78%;width:60px;height:50px;"></div>
+        <div class="building" style="top:30%;left:78%;width:70px;height:60px;"></div>
+
+        <!-- Targets -->
+        <div class="target" style="top:20%;left:40%;"></div>
+        <div class="target" style="top:60%;left:65%;"></div>
+        <div class="target" style="top:40%;left:20%;"></div>
+
+        <!-- Drone -->
+        <div class="drone" id="drone">🚁</div>
+        <div class="drone-range" id="droneRange"></div>
+        <div class="drone-scan" id="droneScan"></div>
+        <div class="crosshair" id="crosshair"></div>
+
+        <!-- HUD -->
+        <div class="hud-tl">
+          <div>🔴 LIVE FEED</div>
+          <div id="hudCoords">LAT: -1.2864 LNG: 36.8172</div>
+          <div id="hudAlt">ALT: 120m</div>
+        </div>
+
+        <div class="hud-tr">
+          <div id="hudTime2"></div>
+          <div>DRONE-01</div>
+          <div id="hudSpeed">SPD: 0 km/h</div>
+        </div>
+
+        <div class="hud-bl">
+          <div>USE ARROW KEYS OR BUTTONS TO FLY</div>
+          <div id="hudZone">ZONE: ALPHA</div>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div class="side-panel">
+
+        <div class="panel-box">
+          <h3>🚁 DRONE STATUS</h3>
+          <div class="stat-row">
+            <span>Battery</span>
+            <span class="stat-val" id="battery">87%</span>
+          </div>
+          <div class="battery-bar">
+            <div class="battery-fill" id="batteryFill" style="width:87%"></div>
+          </div>
+          <div class="stat-row" style="margin-top:8px;">
+            <span>Altitude</span>
+            <span class="stat-val" id="altitude">120m</span>
+          </div>
+          <div class="stat-row">
+            <span>Speed</span>
+            <span class="stat-val" id="speed">0 km/h</span>
+          </div>
+          <div class="stat-row">
+            <span>Signal</span>
+            <span class="stat-val">████ 98%</span>
+          </div>
+          <div class="stat-row">
+            <span>Mode</span>
+            <span class="stat-val">SURVEILLANCE</span>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>🎮 CONTROLS</h3>
+          <div class="controls">
+            <div class="ctrl-btn empty"></div>
+            <div class="ctrl-btn" onclick="moveDrone(0,-1)">▲</div>
+            <div class="ctrl-btn empty"></div>
+            <div class="ctrl-btn" onclick="moveDrone(-1,0)">◄</div>
+            <div class="ctrl-btn empty"></div>
+            <div class="ctrl-btn" onclick="moveDrone(1,0)">►</div>
+            <div class="ctrl-btn empty"></div>
+            <div class="ctrl-btn" onclick="moveDrone(0,1)">▼</div>
+            <div class="ctrl-btn empty"></div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📷 DRONE CAM</h3>
+          <div class="cam-feed">
+            <div class="cam-noise"></div>
+            <div class="cam-scan"></div>
+            <div class="cam-label">
+              🚁 AERIAL VIEW<br>
+              <span id="camCoords" style="font-size:10px;">-1.2864, 36.8172</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📋 FLIGHT LOG</h3>
+          <div class="log-area" id="logArea">
+            <div class="log-line ok">✓ Drone initialized</div>
+            <div class="log-line ok">✓ GPS locked</div>
+            <div class="log-line ok">✓ Camera online</div>
+            <div class="log-line">⚡ Surveillance active</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+
+      // Drone position
+      var droneX = 50;
+      var droneY = 50;
+      var battery = 87;
+      var speed = 0;
+      var moving = false;
+
+      var drone = document.getElementById("drone");
+      var droneRange = document.getElementById("droneRange");
+      var droneScan = document.getElementById("droneScan");
+      var crosshair = document.getElementById("crosshair");
+
+      function placeDrone() {
+        var map = document.getElementById("mapArea");
+        var px = (droneX / 100) * map.offsetWidth;
+        var py = (droneY / 100) * map.offsetHeight;
+        drone.style.left = (px - 14) + "px";
+        drone.style.top = (py - 14) + "px";
+        droneRange.style.left = px + "px";
+        droneRange.style.top = py + "px";
+        droneScan.style.left = px + "px";
+        droneScan.style.top = py + "px";
+        crosshair.style.left = (px - 15) + "px";
+        crosshair.style.top = (py - 15) + "px";
+        crosshair.style.width = "30px";
+        crosshair.style.height = "30px";
+
+        // Update coords
+        var lat = (-1.2864 + (droneY - 50) * 0.001).toFixed(4);
+        var lng = (36.8172 + (droneX - 50) * 0.001).toFixed(4);
+        document.getElementById("hudCoords").innerText = "LAT: " + lat + " LNG: " + lng;
+        document.getElementById("camCoords").innerText = lat + ", " + lng;
+
+        // Zone
+        var zones = ["ALPHA", "BRAVO", "CHARLIE", "DELTA"];
+        var zone = zones[Math.floor((droneX + droneY) / 50) % zones.length];
+        document.getElementById("hudZone").innerText = "ZONE: " + zone;
+
+        // Trail
+        addTrail(px, py);
+      }
+
+      function addTrail(x, y) {
+        var map = document.getElementById("mapArea");
+        var trail = document.createElement("div");
+        trail.className = "trail";
+        trail.style.left = (x - 3) + "px";
+        trail.style.top = (y - 3) + "px";
+        map.appendChild(trail);
+        setTimeout(function() { trail.remove(); }, 2000);
+      }
+
+      function moveDrone(dx, dy) {
+        droneX = Math.max(5, Math.min(95, droneX + dx * 5));
+        droneY = Math.max(5, Math.min(95, droneY + dy * 5));
+        speed = 45;
+        document.getElementById("speed").innerText = speed + " km/h";
+        document.getElementById("hudSpeed").innerText = "SPD: " + speed + " km/h";
+        placeDrone();
+        addLog("🚁 Moving to " + droneX.toFixed(0) + "%, " + droneY.toFixed(0) + "%");
+
+        clearTimeout(window.speedReset);
+        window.speedReset = setTimeout(function() {
+          speed = 0;
+          document.getElementById("speed").innerText = "0 km/h";
+          document.getElementById("hudSpeed").innerText = "SPD: 0 km/h";
+        }, 500);
+      }
+
+      // Keyboard controls
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "ArrowUp") { e.preventDefault(); moveDrone(0, -1); }
+        if (e.key === "ArrowDown") { e.preventDefault(); moveDrone(0, 1); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); moveDrone(-1, 0); }
+        if (e.key === "ArrowRight") { e.preventDefault(); moveDrone(1, 0); }
+      });
+
+      // Battery drain
+      setInterval(function() {
+        if (battery > 10) {
+          battery -= 0.1;
+          var b = battery.toFixed(0);
+          document.getElementById("battery").innerText = b + "%";
+          document.getElementById("batteryFill").style.width = b + "%";
+          if (battery < 30) {
+            document.getElementById("battery").className = "stat-val stat-danger";
+            document.getElementById("batteryFill").style.backgroundColor = "#ff4444";
+          } else if (battery < 50) {
+            document.getElementById("battery").className = "stat-val stat-warn";
+            document.getElementById("batteryFill").style.backgroundColor = "#ffaa00";
+          }
+        }
+      }, 1000);
+
+      // Altitude variation
+      setInterval(function() {
+        var alt = 120 + Math.floor(Math.random() * 10 - 5);
+        document.getElementById("altitude").innerText = alt + "m";
+        document.getElementById("hudAlt").innerText = "ALT: " + alt + "m";
+      }, 2000);
+
+      // Clock
+      setInterval(function() {
+        var t = new Date().toLocaleTimeString();
+        document.getElementById("navTime").innerText = t;
+        document.getElementById("hudTime2").innerText = t;
+      }, 1000);
+
+      // Log
+      function addLog(msg) {
+        var log = document.getElementById("logArea");
+        var line = document.createElement("div");
+        line.className = "log-line";
+        line.innerText = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // Random alerts
+      var alerts = [
+        "⚠ Motion detected in ZONE BRAVO",
+        "🔴 Unknown target spotted",
+        "📡 Signal interference detected",
+        "⚠ Entering restricted airspace",
+        "✓ Target locked",
+        "📷 Image captured"
+      ];
+
+      setInterval(function() {
+        var msg = alerts[Math.floor(Math.random() * alerts.length)];
+        var log = document.getElementById("logArea");
+        var line = document.createElement("div");
+        line.className = "log-line alert";
+        line.innerText = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }, 5000);
+
+      // Init
+      placeDrone();
+
+    </script>
+
+  </body>
+</html>

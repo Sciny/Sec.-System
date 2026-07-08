@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Satellite Tracking</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        color: white;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      nav {
+        background-color: #1a1a4e;
+        border-bottom: 1px solid #00ff88;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav .logo { color: #00ff88; font-size: 16px; font-weight: bold; }
+
+      .nav-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .nav-btn:hover { background-color: #00ff8822; }
+
+      .main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* Space view */
+      .space-view {
+        flex: 1;
+        position: relative;
+        background: radial-gradient(ellipse at center, #0a0a2e 0%, #000008 100%);
+        overflow: hidden;
+      }
+
+      /* Stars */
+      .stars {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+
+      .star {
+        position: absolute;
+        background-color: white;
+        border-radius: 50%;
+        animation: twinkle 2s infinite alternate;
+      }
+
+      @keyframes twinkle {
+        0% { opacity: 0.3; }
+        100% { opacity: 1; }
+      }
+
+      /* Earth */
+      .earth {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%,
+          #1a6b3c 0%,
+          #1a4b8c 30%,
+          #0d3366 60%,
+          #061a33 100%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow:
+          0 0 40px rgba(0,100,255,0.3),
+          inset -20px -20px 40px rgba(0,0,0,0.5);
+        animation: earthrotate 20s linear infinite;
+      }
+
+      @keyframes earthrotate {
+        0% { box-shadow: 0 0 40px rgba(0,100,255,0.3), inset -20px -20px 40px rgba(0,0,0,0.5); }
+        50% { box-shadow: 0 0 60px rgba(0,150,255,0.4), inset -20px -20px 40px rgba(0,0,0,0.5); }
+        100% { box-shadow: 0 0 40px rgba(0,100,255,0.3), inset -20px -20px 40px rgba(0,0,0,0.5); }
+      }
+
+      /* Atmosphere */
+      .atmosphere {
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        border: 2px solid rgba(0,150,255,0.2);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 20px rgba(0,150,255,0.1);
+      }
+
+      /* Orbit paths */
+      .orbit {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid rgba(0,255,136,0.15);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      /* Satellites */
+      .satellite {
+        position: absolute;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 10;
+        filter: drop-shadow(0 0 5px #00ff88);
+      }
+
+      .satellite:hover { filter: drop-shadow(0 0 10px #00ff88); }
+
+      .sat-label {
+        position: absolute;
+        color: #00ff88;
+        font-size: 9px;
+        font-family: monospace;
+        white-space: nowrap;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      /* HUD */
+      .hud-tl {
+        position: absolute;
+        top: 10px; left: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        z-index: 20;
+      }
+
+      .hud-tr {
+        position: absolute;
+        top: 10px; right: 10px;
+        color: #00ff88;
+        font-size: 11px;
+        font-family: monospace;
+        text-align: right;
+        z-index: 20;
+      }
+
+      /* Side panel */
+      .side-panel {
+        width: 270px;
+        background-color: #0d0d2e;
+        border-left: 1px solid #00ff88;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow-y: auto;
+      }
+
+      .panel-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .panel-box h3 {
+        color: #00ff88;
+        font-size: 13px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+
+      .sat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #0a0a2e;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .sat-item:hover { background-color: #00ff8811; }
+
+      .sat-name { color: #cccccc; }
+      .sat-status { color: #00ff88; font-size: 11px; }
+      .sat-status.warn { color: #ffaa00; }
+      .sat-status.off { color: #ff4444; }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 5px 0;
+        border-bottom: 1px solid #0a0a2e;
+        color: #cccccc;
+      }
+
+      .stat-val { color: #00ff88; font-family: monospace; }
+
+      .signal-bars {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+      }
+
+      .bar {
+        width: 5px;
+        background-color: #00ff88;
+        border-radius: 1px;
+      }
+
+      .log-area {
+        max-height: 100px;
+        overflow-y: auto;
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .log-line { color: #aaaaaa; padding: 2px 0; border-bottom: 1px solid #0a0a2e; }
+      .log-line.alert { color: #ff4444; }
+      .log-line.ok { color: #00ff88; }
+
+    </style>
+  </head>
+  <body>
+
+    <nav>
+      <div class="logo">🛸 SATELLITE TRACKING SYSTEM — MARK@ADMIN</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="color:#aaa;font-size:12px;" id="navTime"></span>
+        <button class="nav-btn" onclick="window.location.href='dashboard.html'">⬅ Dashboard</button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <div class="space-view" id="spaceView">
+        <div class="stars" id="stars"></div>
+
+        <!-- Orbits -->
+        <div class="orbit" style="width:300px;height:300px;"></div>
+        <div class="orbit" style="width:400px;height:400px;"></div>
+        <div class="orbit" style="width:500px;height:500px;"></div>
+        <div class="orbit" style="width:600px;height:600px;"></div>
+
+        <!-- Earth -->
+        <div class="atmosphere"></div>
+        <div class="earth"></div>
+
+        <!-- Satellites -->
+        <div class="satellite" id="sat1" onclick="selectSat(1)">
+          🛸<div class="sat-label">SAT-01</div>
+        </div>
+        <div class="satellite" id="sat2" onclick="selectSat(2)">
+          🛰️<div class="sat-label">SAT-02</div>
+        </div>
+        <div class="satellite" id="sat3" onclick="selectSat(3)">
+          🛸<div class="sat-label">SAT-03</div>
+        </div>
+        <div class="satellite" id="sat4" onclick="selectSat(4)">
+          🛰️<div class="sat-label">SAT-04</div>
+        </div>
+
+        <!-- HUD -->
+        <div class="hud-tl">
+          <div>🟢 TRACKING ACTIVE</div>
+          <div id="hudTime"></div>
+          <div>SATELLITES: 4 ONLINE</div>
+        </div>
+
+        <div class="hud-tr">
+          <div>SYSTEM: SECURE</div>
+          <div>UPLINK: ACTIVE</div>
+          <div id="selectedSat">SELECTED: NONE</div>
+        </div>
+      </div>
+
+      <div class="side-panel">
+
+        <div class="panel-box">
+          <h3>🛸 SATELLITE LIST</h3>
+          <div class="sat-item" onclick="selectSat(1)">
+            <span class="sat-name">🛸 SAT-01 RECON</span>
+            <span class="sat-status">● ONLINE</span>
+          </div>
+          <div class="sat-item" onclick="selectSat(2)">
+            <span class="sat-name">🛰️ SAT-02 COMMS</span>
+            <span class="sat-status">● ONLINE</span>
+          </div>
+          <div class="sat-item" onclick="selectSat(3)">
+            <span class="sat-name">🛸 SAT-03 SPY</span>
+            <span class="sat-status warn">● STANDBY</span>
+          </div>
+          <div class="sat-item" onclick="selectSat(4)">
+            <span class="sat-name">🛰️ SAT-04 GPS</span>
+            <span class="sat-status">● ONLINE</span>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📡 SELECTED SATELLITE</h3>
+          <div class="stat-row">
+            <span>Name</span>
+            <span class="stat-val" id="selName">--</span>
+          </div>
+          <div class="stat-row">
+            <span>Altitude</span>
+            <span class="stat-val" id="selAlt">--</span>
+          </div>
+          <div class="stat-row">
+            <span>Speed</span>
+            <span class="stat-val" id="selSpeed">--</span>
+          </div>
+          <div class="stat-row">
+            <span>Orbit</span>
+            <span class="stat-val" id="selOrbit">--</span>
+          </div>
+          <div class="stat-row">
+            <span>Signal</span>
+            <span class="stat-val" id="selSignal">--</span>
+          </div>
+          <div class="stat-row">
+            <span>Status</span>
+            <span class="stat-val" id="selStatus">--</span>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📊 SYSTEM STATS</h3>
+          <div class="stat-row">
+            <span>Total Sats</span>
+            <span class="stat-val">4</span>
+          </div>
+          <div class="stat-row">
+            <span>Online</span>
+            <span class="stat-val">3</span>
+          </div>
+          <div class="stat-row">
+            <span>Coverage</span>
+            <span class="stat-val">94%</span>
+          </div>
+          <div class="stat-row">
+            <span>Uplink</span>
+            <span class="stat-val">ACTIVE</span>
+          </div>
+          <div class="stat-row">
+            <span>Next Pass</span>
+            <span class="stat-val" id="nextPass">--</span>
+          </div>
+        </div>
+
+        <div class="panel-box">
+          <h3>📋 TRACKING LOG</h3>
+          <div class="log-area" id="logArea">
+            <div class="log-line ok">✓ All systems online</div>
+            <div class="log-line ok">✓ GPS lock acquired</div>
+            <div class="log-line">📡 Uplink established</div>
+            <div class="log-line">🛸 Tracking 4 satellites</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+
+      // Stars
+      var starsContainer = document.getElementById("stars");
+      for (var i = 0; i < 200; i++) {
+        var star = document.createElement("div");
+        star.className = "star";
+        var size = Math.random() * 2 + 1;
+        star.style.width = size + "px";
+        star.style.height = size + "px";
+        star.style.left = Math.random() * 100 + "%";
+        star.style.top = Math.random() * 100 + "%";
+        star.style.animationDelay = Math.random() * 2 + "s";
+        star.style.animationDuration = (Math.random() * 2 + 1) + "s";
+        starsContainer.appendChild(star);
+      }
+
+      // Clock
+      setInterval(function() {
+        var t = new Date().toLocaleTimeString();
+        document.getElementById("navTime").innerText = t;
+        document.getElementById("hudTime").innerText = t;
+      }, 1000);
+
+      // Next pass countdown
+      var passSeconds = 847;
+      setInterval(function() {
+        passSeconds--;
+        var m = Math.floor(passSeconds / 60);
+        var s = passSeconds % 60;
+        document.getElementById("nextPass").innerText = m + "m " + s + "s";
+        if (passSeconds <= 0) passSeconds = 847;
+      }, 1000);
+
+      // Satellite orbits
+      var view = document.getElementById("spaceView");
+      var sats = [
+        { id: "sat1", angle: 0, radius: 150, speed: 0.5, name: "SAT-01 RECON", alt: "550 km", spd: "7.6 km/s", orbit: "LEO", signal: "98%", status: "ONLINE" },
+        { id: "sat2", angle: 90, radius: 200, speed: 0.3, name: "SAT-02 COMMS", alt: "850 km", spd: "7.4 km/s", orbit: "MEO", signal: "95%", status: "ONLINE" },
+        { id: "sat3", angle: 180, radius: 250, speed: 0.2, name: "SAT-03 SPY", alt: "1200 km", spd: "7.1 km/s", orbit: "MEO", signal: "72%", status: "STANDBY" },
+        { id: "sat4", angle: 270, radius: 300, speed: 0.15, name: "SAT-04 GPS", alt: "20200 km", spd: "3.9 km/s", orbit: "HEO", signal: "99%", status: "ONLINE" }
+      ];
+
+      function updateSatPositions() {
+        var cx = view.offsetWidth / 2;
+        var cy = view.offsetHeight / 2;
+
+        sats.forEach(function(sat) {
+          sat.angle += sat.speed;
+          var rad = sat.angle * Math.PI / 180;
+          var x = cx + sat.radius * Math.cos(rad);
+          var y = cy + sat.radius * Math.sin(rad);
+          var el = document.getElementById(sat.id);
+          el.style.left = (x - 10) + "px";
+          el.style.top = (y - 10) + "px";
+        });
+      }
+
+      setInterval(updateSatPositions, 50);
+      updateSatPositions();
+
+      // Select satellite
+      function selectSat(num) {
+        var sat = sats[num - 1];
+        document.getElementById("selName").innerText = sat.name;
+        document.getElementById("selAlt").innerText = sat.alt;
+        document.getElementById("selSpeed").innerText = sat.spd;
+        document.getElementById("selOrbit").innerText = sat.orbit;
+        document.getElementById("selSignal").innerText = sat.signal;
+        document.getElementById("selStatus").innerText = sat.status;
+        document.getElementById("selectedSat").innerText = "SELECTED: " + sat.id.toUpperCase();
+        addLog("📡 Selected: " + sat.name);
+      }
+
+      // Random alerts
+      var alerts = [
+        "📡 Signal ping received",
+        "🛸 Orbital adjustment complete",
+        "⚠ Solar interference detected",
+        "✓ Data uplink successful",
+        "🔄 Orbit recalculated"
+      ];
+
+      setInterval(function() {
+        addLog(alerts[Math.floor(Math.random() * alerts.length)]);
+      }, 4000);
+
+      function addLog(msg) {
+        var log = document.getElementById("logArea");
+        var line = document.createElement("div");
+        line.className = "log-line";
+        line.innerText = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+      }
+
+    </script>
+
+  </body>
+</html>

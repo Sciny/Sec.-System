@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Biometric Database</title>
+    <style>
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #0a0a2e;
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      nav {
+        background-color: #1a1a4e;
+        border-bottom: 1px solid #00ff88;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      nav .logo { color: #00ff88; font-size: 16px; font-weight: bold; }
+
+      .nav-btn {
+        background-color: transparent;
+        border: 1px solid #00ff88;
+        color: #00ff88;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .nav-btn:hover { background-color: #00ff8822; }
+
+      .main {
+        flex: 1;
+        padding: 20px;
+        display: flex;
+        gap: 20px;
+      }
+
+      /* Left panel */
+      .left-panel {
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .search-box {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      .search-box h3 {
+        color: #00ff88;
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 10px;
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 6px;
+        color: white;
+        font-size: 13px;
+        outline: none;
+        margin-bottom: 8px;
+      }
+
+      .search-box select {
+        width: 100%;
+        padding: 10px;
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        border-radius: 6px;
+        color: white;
+        font-size: 13px;
+        outline: none;
+        margin-bottom: 8px;
+      }
+
+      .search-box button {
+        width: 100%;
+        padding: 10px;
+        background-color: #00ff88;
+        color: #0a0a2e;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .search-box button:hover { background-color: #00cc6a; }
+
+      .subject-list {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .subject-list h3 {
+        color: #00ff88;
+        font-size: 13px;
+        padding: 12px 15px;
+        border-bottom: 1px solid #0a0a2e;
+      }
+
+      .subject-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 15px;
+        border-bottom: 1px solid #0a0a2e;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .subject-item:hover { background-color: #00ff8811; }
+      .subject-item.active { background-color: #00ff8822; }
+
+      .subject-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background-color: #0a0a2e;
+        border: 1px solid #00ff88;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 18px;
+      }
+
+      .subject-info .name {
+        color: #cccccc;
+        font-size: 13px;
+      }
+
+      .subject-info .id {
+        color: #aaaaaa;
+        font-size: 10px;
+        font-family: monospace;
+      }
+
+      .subject-tag {
+        margin-left: auto;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+      }
+
+      .tag-admin { background-color: rgba(0,255,136,0.2); color: #00ff88; }
+      .tag-suspect { background-color: rgba(255,68,68,0.2); color: #ff4444; }
+      .tag-agent { background-color: rgba(0,170,255,0.2); color: #00aaff; }
+      .tag-civilian { background-color: rgba(170,170,170,0.2); color: #aaaaaa; }
+
+      /* Right panel */
+      .right-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .profile-header {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 10px;
+        padding: 20px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #0a0a2e;
+        border: 2px solid #00ff88;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 40px;
+        flex-shrink: 0;
+      }
+
+      .profile-info h2 {
+        color: #00ff88;
+        font-size: 22px;
+        margin-bottom: 5px;
+      }
+
+      .profile-info .profile-id {
+        color: #aaaaaa;
+        font-size: 12px;
+        font-family: monospace;
+        margin-bottom: 8px;
+      }
+
+      .profile-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .pbadge {
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 11px;
+        border: 1px solid;
+      }
+
+      .pbadge-green { border-color: #00ff88; color: #00ff88; }
+      .pbadge-red { border-color: #ff4444; color: #ff4444; }
+      .pbadge-blue { border-color: #00aaff; color: #00aaff; }
+      .pbadge-yellow { border-color: #ffaa00; color: #ffaa00; }
+
+      .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+      }
+
+      .profile-section {
+        background-color: #1a1a4e;
+        border: 1px solid #00ff88;
+        border-radius: 8px;
+        padding: 15px;
+      }
+
+      .profile-section h3 {
+        color: #00ff88;
+        font-size: 12px;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #0a0a2e;
+        padding-bottom: 5px;
+      }
+
+      .data-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        padding: 4px 0;
+        border-bottom: 1px solid #0a0a0a;
+        color: #aaaaaa;
+      }
+
+      .data-val { color: #00ff88; font-family: monospace; }
+      .data-val.red { color: #ff4444; }
+      .data-val.yellow { color: #ffaa00; }
+
+      /* Biometric bars */
+      .bio-bar {
+        margin: 5px 0;
+      }
+
+      .bio-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #aaaaaa;
+        margin-bottom: 2px;
+      }
+
+      .bio-bar-bg {
+        width: 100%;
+        height: 5px;
+        background-color: #0a0a2e;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .bio-bar-fill {
+        height: 100%;
+        background-color: #00ff88;
+        border-radius: 3px;
+      }
+
+      /* Action buttons */
+      .profile-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .action-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        border: none;
+      }
+
+      .btn-green { background-color: #00ff88; color: #0a0a2e; }
+      .btn-green:hover { background-color: #00cc6a; }
+      .btn-red { background-color: transparent; border: 1px solid #ff4444; color: #ff4444; }
+      .btn-red:hover { background-color: #ff444422; }
+      .btn-blue { background-color: transparent; border: 1px solid #00aaff; color: #00aaff; }
+      .btn-blue:hover { background-color: #00aaff22; }
+
+    </style>
+  </head>
+  <body>
+
+    <nav>
+      <div class="logo">🧬 BIOMETRIC DATABASE — MARK@ADMIN</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <span style="color:#aaa;font-size:12px;" id="navTime"></span>
+        <button class="nav-btn" onclick="window.location.href='dashboard.html'">⬅ Dashboard</button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <!-- Left Panel -->
+      <div class="left-panel">
+
+        <div class="search-box">
+          <h3>🔍 SEARCH DATABASE</h3>
+          <input type="text" placeholder="Search by name or ID..." id="searchInput" oninput="filterSubjects()" />
+          <select id="filterType" onchange="filterSubjects()">
+            <option value="all">All Types</option>
+            <option value="admin">Admin</option>
+            <option value="agent">Agent</option>
+            <option value="suspect">Suspect</option>
+            <option value="civilian">Civilian</option>
+          </select>
+          <button onclick="filterSubjects()">🔍 SEARCH</button>
+        </div>
+
+        <div class="subject-list">
+          <h3>👥 SUBJECTS (6)</h3>
+          <div id="subjectList"></div>
+        </div>
+
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+
+        <div class="profile-header">
+          <div class="profile-avatar" id="profileAvatar">👤</div>
+          <div class="profile-info">
+            <h2 id="profileName">SELECT A SUBJECT</h2>
+            <div class="profile-id" id="profileId">ID: --</div>
+            <div class="profile-badges" id="profileBadges"></div>
+          </div>
+        </div>
+
+        <div class="profile-grid" id="profileGrid" style="display:none;">
+
+          <div class="profile-section">
+            <h3>👤 PERSONAL INFO</h3>
+            <div class="data-row"><span>Age</span><span class="data-val" id="dAge">--</span></div>
+            <div class="data-row"><span>Gender</span><span class="data-val" id="dGender">--</span></div>
+            <div class="data-row"><span>Nationality</span><span class="data-val" id="dNation">--</span></div>
+            <div class="data-row"><span>Height</span><span class="data-val" id="dHeight">--</span></div>
+            <div class="data-row"><span>Weight</span><span class="data-val" id="dWeight">--</span></div>
+            <div class="data-row"><span>Blood Type</span><span class="data-val" id="dBlood">--</span></div>
+          </div>
+
+          <div class="profile-section">
+            <h3>🔐 SECURITY INFO</h3>
+            <div class="data-row"><span>Clearance</span><span class="data-val" id="dClearance">--</span></div>
+            <div class="data-row"><span>Threat Level</span><span class="data-val" id="dThreat">--</span></div>
+            <div class="data-row"><span>Last Seen</span><span class="data-val" id="dLastSeen">--</span></div>
+            <div class="data-row"><span>Status</span><span class="data-val" id="dStatus">--</span></div>
+            <div class="data-row"><span>Arrests</span><span class="data-val" id="dArrests">--</span></div>
+            <div class="data-row"><span>Missions</span><span class="data-val" id="dMissions">--</span></div>
+          </div>
+
+          <div class="profile-section">
+            <h3>🧬 BIOMETRICS</h3>
+            <div class="bio-bar">
+              <div class="bio-bar-label"><span>Face Match</span><span id="bFace">--</span></div>
+              <div class="bio-bar-bg"><div class="bio-bar-fill" id="bFaceBar" style="width:0%"></div></div>
+            </div>
+            <div class="bio-bar">
+              <div class="bio-bar-label"><span>Fingerprint</span><span id="bFinger">--</span></div>
+              <div class="bio-bar-bg"><div class="bio-bar-fill" id="bFingerBar" style="width:0%"></div></div>
+            </div>
+            <div class="bio-bar">
+              <div class="bio-bar-label"><span>Voice Match</span><span id="bVoice">--</span></div>
+              <div class="bio-bar-bg"><div class="bio-bar-fill" id="bVoiceBar" style="width:0%"></div></div>
+            </div>
+            <div class="bio-bar">
+              <div class="bio-bar-label"><span>Iris Scan</span><span id="bIris">--</span></div>
+              <div class="bio-bar-bg"><div class="bio-bar-fill" id="bIrisBar" style="width:0%"></div></div>
+            </div>
+            <div class="bio-bar">
+              <div class="bio-bar-label"><span>DNA Match</span><span id="bDna">--</span></div>
+              <div class="bio-bar-bg"><div class="bio-bar-fill" id="bDnaBar" style="width:0%"></div></div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="profile-actions" id="profileActions" style="display:none;">
+          <button class="action-btn btn-green" onclick="alert('✅ Subject cleared for access!')">✅ CLEAR SUBJECT</button>
+          <button class="action-btn btn-red" onclick="alert('🚨 Subject flagged as threat!')">🚨 FLAG THREAT</button>
+          <button class="action-btn btn-blue" onclick="alert('📋 Full report generated!')">📋 GENERATE REPORT</button>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+
+      var subjects = [
+        {
+          avatar: "👨", name: "MARK ADMIN", id: "BIO-001-ADMIN",
+          type: "admin", tag: "ADMIN",
+          age: "28", gender: "Male", nation: "Kenyan",
+          height: "5\'11\"", weight: "75kg", blood: "O+",
+          clearance: "LEVEL 5", threat: "NONE", lastSeen: "NOW",
+          status: "ACTIVE", arrests: "0", missions: "47",
+          face: 99, finger: 100, voice: 98, iris: 97, dna: 100,
+          badges: [
+            { text: "ADMIN", cls: "pbadge-green" },
+            { text: "LEVEL 5", cls: "pbadge-blue" },
+            { text: "TRUSTED", cls: "pbadge-green" }
+          ]
+        },
+        {
+          avatar: "🕵️", name: "AGENT SHADOW", id: "BIO-002-AGENT",
+          type: "agent", tag: "AGENT",
+          age: "34", gender: "Male", nation: "British",
+          height: "6\'1\"", weight: "82kg", blood: "A+",
+          clearance: "LEVEL 4", threat: "LOW", lastSeen: "2h ago",
+          status: "ON MISSION", arrests: "0", missions: "93",
+          face: 97, finger: 98, voice: 95, iris: 96, dna: 99,
+          badges: [
+            { text: "AGENT", cls: "pbadge-blue" },
+            { text: "LEVEL 4", cls: "pbadge-blue" },
+            { text: "ACTIVE", cls: "pbadge-green" }
+          ]
+        },
+        {
+          avatar: "🕵️", name: "AGENT VIPER", id: "BIO-003-AGENT",
+          type: "agent", tag: "AGENT",
+          age: "31", gender: "Female", nation: "American",
+          height: "5\'7\"", weight: "62kg", blood: "B-",
+          clearance: "LEVEL 4", threat: "LOW", lastSeen: "5h ago",
+          status: "STANDBY", arrests: "0", missions: "67",
+          face: 96, finger: 97, voice: 94, iris: 98, dna: 97,
+          badges: [
+            { text: "AGENT", cls: "pbadge-blue" },
+            { text: "LEVEL 4", cls: "pbadge-blue" },
+            { text: "STANDBY", cls: "pbadge-yellow" }
+          ]
+        },
+        {
+          avatar: "😈", name: "SUSPECT ALPHA", id: "BIO-004-SUSPECT",
+          type: "suspect", tag: "SUSPECT",
+          age: "42", gender: "Male", nation: "Unknown",
+          height: "5\'9\"", weight: "78kg", blood: "AB+",
+          clearance: "NONE", threat: "EXTREME", lastSeen: "3d ago",
+          status: "WANTED", arrests: "3", missions: "0",
+          face: 85, finger: 78, voice: 72, iris: 81, dna: 90,
+          badges: [
+            { text: "SUSPECT", cls: "pbadge-red" },
+            { text: "WANTED", cls: "pbadge-red" },
+            { text: "EXTREME THREAT", cls: "pbadge-red" }
+          ]
+        },
+        {
+          avatar: "👿", name: "SUSPECT GHOST", id: "BIO-005-SUSPECT",
+          type: "suspect", tag: "SUSPECT",
+          age: "38", gender: "Unknown", nation: "Unknown",
+          height: "Unknown", weight: "Unknown", blood: "Unknown",
+          clearance: "NONE", threat: "HIGH", lastSeen: "1w ago",
+          status: "AT LARGE", arrests: "1", missions: "0",
+          face: 45, finger: 30, voice: 20, iris: 15, dna: 60,
+          badges: [
+            { text: "SUSPECT", cls: "pbadge-red" },
+            { text: "AT LARGE", cls: "pbadge-red" },
+            { text: "HIGH THREAT", cls: "pbadge-yellow" }
+          ]
+        },
+        {
+          avatar: "👤", name: "CIVILIAN JOHN", id: "BIO-006-CIV",
+          type: "civilian", tag: "CIVILIAN",
+          age: "25", gender: "Male", nation: "Kenyan",
+          height: "5\'8\"", weight: "70kg", blood: "O-",
+          clearance: "NONE", threat: "NONE", lastSeen: "1d ago",
+          status: "MONITORED", arrests: "0", missions: "0",
+          face: 92, finger: 94, voice: 88, iris: 90, dna: 95,
+          badges: [
+            { text: "CIVILIAN", cls: "pbadge-yellow" },
+            { text: "MONITORED", cls: "pbadge-yellow" }
+          ]
+        }
+      ];
+
+      var filtered = subjects.slice();
+
+      function renderList() {
+        var list = document.getElementById("subjectList");
+        list.innerHTML = "";
+        filtered.forEach(function(s, i) {
+          var item = document.createElement("div");
+          item.className = "subject-item";
+          item.innerHTML =
+            '<div class="subject-avatar">' + s.avatar + '</div>' +
+            '<div class="subject-info">' +
+              '<div class="name">' + s.name + '</div>' +
+              '<div class="id">' + s.id + '</div>' +
+            '</div>' +
+            '<span class="subject-tag tag-' + s.type + '">' + s.tag + '</span>';
+          item.onclick = function() { loadSubject(i); };
+          list.appendChild(item);
+        });
+      }
+
+      function loadSubject(index) {
+        var s = filtered[index];
+
+        document.querySelectorAll(".subject-item").forEach(function(el, i) {
+          el.classList.toggle("active", i === index);
+        });
+
+        document.getElementById("profileAvatar").innerText = s.avatar;
+        document.getElementById("profileName").innerText = s.name;
+        document.getElementById("profileId").innerText = "ID: " + s.id;
+
+        var badges = document.getElementById("profileBadges");
+        badges.innerHTML = "";
+        s.badges.forEach(function(b) {
+          var span = document.createElement("span");
+          span.className = "pbadge " + b.cls;
+          span.innerText = b.text;
+          badges.appendChild(span);
+        });
+
+        document.getElementById("dAge").innerText = s.age;
+        document.getElementById("dGender").innerText = s.gender;
+        document.getElementById("dNation").innerText = s.nation;
+        document.getElementById("dHeight").innerText = s.height;
+        document.getElementById("dWeight").innerText = s.weight;
+        document.getElementById("dBlood").innerText = s.blood;
+        document.getElementById("dClearance").innerText = s.clearance;
+        document.getElementById("dThreat").innerText = s.threat;
+        document.getElementById("dLastSeen").innerText = s.lastSeen;
+        document.getElementById("dStatus").innerText = s.status;
+        document.getElementById("dArrests").innerText = s.arrests;
+        document.getElementById("dMissions").innerText = s.missions;
+
+        document.getElementById("bFace").innerText = s.face + "%";
+        document.getElementById("bFaceBar").style.width = s.face + "%";
+        document.getElementById("bFinger").innerText = s.finger + "%";
+        document.getElementById("bFingerBar").style.width = s.finger + "%";
+        document.getElementById("bVoice").innerText = s.voice + "%";
+        document.getElementById("bVoiceBar").style.width = s.voice + "%";
+        document.getElementById("bIris").innerText = s.iris + "%";
+        document.getElementById("bIrisBar").style.width = s.iris + "%";
+        document.getElementById("bDna").innerText = s.dna + "%";
+        document.getElementById("bDnaBar").style.width = s.dna + "%";
+
+        document.getElementById("profileGrid").style.display = "grid";
+        document.getElementById("profileActions").style.display = "flex";
+      }
+
+      function filterSubjects() {
+        var search = document.getElementById("searchInput").value.toLowerCase();
+        var type = document.getElementById("filterType").value;
+        filtered = subjects.filter(function(s) {
+          var matchSearch = s.name.toLowerCase().includes(search) || s.id.toLowerCase().includes(search);
+          var matchType = type === "all" || s.type === type;
+          return matchSearch && matchType;
+        });
+        renderList();
+      }
+
+      // Clock
+      setInterval(function() {
+        document.getElementById("navTime").innerText = new Date().toLocaleTimeString();
+      }, 1000);
+
+      renderList();
+
+    </script>
+
+  </body>
+</html>
